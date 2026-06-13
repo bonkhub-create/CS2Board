@@ -1,158 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>CS2 Strategy Board</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; background: #0a0c12; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e0e0e0; overflow: hidden; }
-
-#app { display: flex; flex-direction: column; height: 100vh; }
-
-/* ── Toolbar ── */
-#toolbar {
-  display: flex; align-items: center; gap: 4px;
-  padding: 6px 10px; background: #161923;
-  border-bottom: 1px solid #23263a; flex-wrap: wrap; flex-shrink: 0;
-}
-.sep { width: 1px; height: 26px; background: #23263a; margin: 0 3px; flex-shrink: 0; }
-.tb-btn {
-  width: 34px; height: 34px; border-radius: 6px;
-  border: 1.5px solid transparent; background: #23263a;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 16px; position: relative; user-select: none; color: #ccc; flex-shrink: 0;
-  transition: background 0.1s, border-color 0.1s;
-}
-.tb-btn:hover { background: #2b2f45; border-color: #343854; }
-.tb-btn.active { border-color: #e8c840; background: #27240d; }
-.tb-btn .tip {
-  position: absolute; top: 38px; left: 50%; transform: translateX(-50%);
-  background: #0d0f1a; border: 1px solid #23263a; border-radius: 4px;
-  font-size: 10px; white-space: nowrap; padding: 2px 6px;
-  pointer-events: none; opacity: 0; z-index: 200; color: #aaa;
-  transition: opacity 0.15s;
-}
-.tb-btn:hover .tip { opacity: 1; }
-#map-sel {
-  background: #23263a; color: #e0e0e0; border: 1.5px solid #343854;
-  border-radius: 6px; padding: 4px 7px; font-size: 12px; cursor: pointer; height: 34px;
-}
-#sname {
-  background: #1e2130; color: #e8c840; border: 1px solid #2e2a00;
-  border-radius: 6px; padding: 5px 8px; font-size: 12px; font-weight: 600;
-  width: 140px; height: 34px;
-}
-
-/* ── Board area ── */
-#board { display: flex; flex: 1; overflow: hidden; }
-#cvwrap { flex: 1; position: relative; overflow: hidden; }
-#cv { position: absolute; top: 0; left: 0; cursor: crosshair; display: block; }
-
-/* ── Sidebar ── */
-#sidebar {
-  width: 180px; background: #161923; border-left: 1px solid #23263a;
-  padding: 9px 8px; display: flex; flex-direction: column; gap: 7px;
-  overflow-y: auto; flex-shrink: 0;
-}
-.s-lbl {
-  font-size: 10px; font-weight: 600; color: #555;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  padding-bottom: 4px; border-bottom: 1px solid #1e2130;
-}
-#notes {
-  width: 100%; background: #1e2130; color: #d0d0d0;
-  border: 1px solid #23263a; border-radius: 6px;
-  padding: 5px 7px; font-size: 11px; resize: none;
-  font-family: inherit; min-height: 72px;
-}
-#notes::placeholder { color: #2e3350; }
-#sel-info { font-size: 11px; color: #2e3350; min-height: 28px; }
-.si-row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; color: #888; }
-.si-row span { color: #ccc; }
-.del-btn {
-  width: 100%; background: #2a1010; color: #e07070;
-  border: 1px solid #4a1e1e; border-radius: 6px;
-  padding: 5px; font-size: 11px; cursor: pointer; margin-top: 2px;
-}
-.del-btn:hover { background: #3a1515; }
-.team-row { display: flex; gap: 4px; }
-.t-btn { flex: 1; padding: 5px 2px; border-radius: 5px; border: 1.5px solid transparent; font-size: 11px; cursor: pointer; font-weight: 600; }
-.t-btn.ct { background: #0d1f35; color: #5ba3e0; border-color: #142840; }
-.t-btn.t  { background: #251800; color: #e0a030; border-color: #402800; }
-.t-btn.ct.active { background: #163355; border-color: #4a90d0; }
-.t-btn.t.active  { background: #3d2600; border-color: #d09020; }
-.color-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
-.c-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; transition: transform 0.1s; }
-.c-dot:hover { transform: scale(1.15); }
-.c-dot.active { border-color: #fff; }
-.act-row { display: flex; gap: 4px; }
-.a-btn {
-  flex: 1; background: #1e2130; border: 1px solid #23263a;
-  color: #aaa; border-radius: 6px; padding: 5px 3px; font-size: 10px; cursor: pointer;
-}
-.a-btn:hover { background: #272b3d; color: #e0e0e0; }
-.a-btn.wide { flex: none; width: 100%; font-size: 11px; padding: 6px; }
-#map-status { font-size: 10px; color: #3a3f5a; text-align: center; }
-
-/* Timer */
-#timer-display { background: #1e2130; border: 1px solid #23263a; border-radius: 6px; padding: 6px 8px; text-align: center; }
-#timer-val { font-size: 24px; font-weight: 700; color: #e8c840; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
-#timer-phase { font-size: 10px; color: #888; margin-top: 1px; }
-.timer-row { display: flex; gap: 4px; }
-.timer-btn { flex: 1; background: #1e2130; border: 1px solid #23263a; color: #aaa; border-radius: 5px; padding: 4px 2px; font-size: 10px; cursor: pointer; }
-.timer-btn:hover { background: #272b3d; color: #e0e0e0; }
-
-/* Toast */
-#toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
-  background: #1e2130; border: 1px solid #343854; border-radius: 8px;
-  padding: 10px 20px; font-size: 13px; color: #e0e0e0;
-  transition: transform 0.25s ease, opacity 0.25s ease; opacity: 0; z-index: 1000;
-  white-space: nowrap;
-}
-#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-#toast.success { border-color: #2a5a2a; color: #80e080; }
-#toast.error { border-color: #5a2a2a; color: #e08080; }
-
-/* Strat library modal */
-#modal-bg {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7); z-index: 500; align-items: center; justify-content: center;
-}
-#modal-bg.open { display: flex; }
-#modal {
-  background: #161923; border: 1px solid #23263a; border-radius: 10px;
-  width: 480px; max-width: 96vw; max-height: 80vh;
-  display: flex; flex-direction: column; overflow: hidden;
-}
-#modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid #23263a;
-}
-#modal-header h2 { font-size: 15px; font-weight: 600; color: #e0e0e0; }
-#modal-close { background: none; border: none; color: #666; cursor: pointer; font-size: 20px; line-height: 1; }
-#modal-close:hover { color: #e0e0e0; }
-#modal-body { padding: 12px 16px; overflow-y: auto; flex: 1; }
-#strat-list { display: flex; flex-direction: column; gap: 8px; }
-.strat-card {
-  background: #1e2130; border: 1px solid #23263a; border-radius: 7px;
-  padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;
-}
-.strat-card:hover { background: #252940; border-color: #343854; }
-.strat-card-info { flex: 1; }
-.strat-card-name { font-size: 13px; font-weight: 600; color: #e0e0e0; }
-.strat-card-meta { font-size: 10px; color: #555; margin-top: 2px; }
-.strat-card-del { background: none; border: none; color: #4a2020; cursor: pointer; font-size: 16px; padding: 4px; }
-.strat-card-del:hover { color: #e07070; }
-#no-strats { color: #3a3f5a; font-size: 12px; text-align: center; padding: 24px 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0a0c12;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e0e0e0;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh}
+#toolbar{display:flex;align-items:center;gap:4px;padding:6px 10px;background:#161923;border-bottom:1px solid #23263a;flex-wrap:wrap;flex-shrink:0}
+.sep{width:1px;height:26px;background:#23263a;margin:0 3px;flex-shrink:0}
+.tb-btn{width:34px;height:34px;border-radius:6px;border:1.5px solid transparent;background:#23263a;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;user-select:none;color:#ccc;flex-shrink:0;transition:background .1s,border-color .1s}
+.tb-btn:hover{background:#2b2f45;border-color:#343854}
+.tb-btn.active{border-color:#e8c840;background:#27240d}
+.tb-btn .tip{position:absolute;top:38px;left:50%;transform:translateX(-50%);background:#0d0f1a;border:1px solid #23263a;border-radius:4px;font-size:10px;white-space:nowrap;padding:2px 6px;pointer-events:none;opacity:0;z-index:200;color:#aaa;transition:opacity .15s}
+.tb-btn:hover .tip{opacity:1}
+#map-sel{background:#23263a;color:#e0e0e0;border:1.5px solid #343854;border-radius:6px;padding:4px 7px;font-size:12px;cursor:pointer;height:34px}
+#sname{background:#1e2130;color:#e8c840;border:1px solid #2e2a00;border-radius:6px;padding:5px 8px;font-size:12px;font-weight:600;width:140px;height:34px}
+#zoom-display{font-size:11px;color:#555;min-width:38px;text-align:center}
+#board{display:flex;flex:1;overflow:hidden}
+#cvwrap{flex:1;position:relative;overflow:hidden}
+#cv{position:absolute;top:0;left:0;display:block}
+#sidebar{width:180px;background:#161923;border-left:1px solid #23263a;padding:9px 8px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;flex-shrink:0}
+.s-lbl{font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.08em;padding-bottom:4px;border-bottom:1px solid #1e2130}
+#notes{width:100%;background:#1e2130;color:#d0d0d0;border:1px solid #23263a;border-radius:6px;padding:5px 7px;font-size:11px;resize:none;font-family:inherit;min-height:72px}
+#notes::placeholder{color:#2e3350}
+#sel-info{font-size:11px;color:#2e3350;min-height:28px}
+.si-row{display:flex;justify-content:space-between;margin:2px 0;font-size:11px;color:#888}
+.si-row span{color:#ccc}
+.del-btn{width:100%;background:#2a1010;color:#e07070;border:1px solid #4a1e1e;border-radius:6px;padding:5px;font-size:11px;cursor:pointer;margin-top:2px}
+.del-btn:hover{background:#3a1515}
+.team-row{display:flex;gap:4px}
+.t-btn{flex:1;padding:5px 2px;border-radius:5px;border:1.5px solid transparent;font-size:11px;cursor:pointer;font-weight:600}
+.t-btn.ct{background:#0d1f35;color:#5ba3e0;border-color:#142840}
+.t-btn.t{background:#251800;color:#e0a030;border-color:#402800}
+.t-btn.ct.active{background:#163355;border-color:#4a90d0}
+.t-btn.t.active{background:#3d2600;border-color:#d09020}
+.color-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.c-dot{width:18px;height:18px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .1s}
+.c-dot:hover{transform:scale(1.15)}
+.c-dot.active{border-color:#fff}
+.act-row{display:flex;gap:4px}
+.a-btn{flex:1;background:#1e2130;border:1px solid #23263a;color:#aaa;border-radius:6px;padding:5px 3px;font-size:10px;cursor:pointer}
+.a-btn:hover{background:#272b3d;color:#e0e0e0}
+.a-btn.wide{flex:none;width:100%;font-size:11px;padding:6px}
+#map-status{font-size:10px;color:#3a3f5a;text-align:center}
+#timer-display{background:#1e2130;border:1px solid #23263a;border-radius:6px;padding:6px 8px;text-align:center}
+#timer-val{font-size:24px;font-weight:700;color:#e8c840;letter-spacing:2px;font-variant-numeric:tabular-nums}
+#timer-phase{font-size:10px;color:#888;margin-top:1px}
+.timer-row{display:flex;gap:4px}
+.timer-btn{flex:1;background:#1e2130;border:1px solid #23263a;color:#aaa;border-radius:5px;padding:4px 2px;font-size:10px;cursor:pointer}
+.timer-btn:hover{background:#272b3d;color:#e0e0e0}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#1e2130;border:1px solid #343854;border-radius:8px;padding:10px 20px;font-size:13px;color:#e0e0e0;transition:transform .25s ease,opacity .25s ease;opacity:0;z-index:1000;white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.success{border-color:#2a5a2a;color:#80e080}
+#toast.error{border-color:#5a2a2a;color:#e08080}
+#modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center}
+#modal-bg.open{display:flex}
+#modal{background:#161923;border:1px solid #23263a;border-radius:10px;width:480px;max-width:96vw;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+#modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #23263a}
+#modal-header h2{font-size:15px;font-weight:600;color:#e0e0e0}
+#modal-close{background:none;border:none;color:#666;cursor:pointer;font-size:20px;line-height:1}
+#modal-close:hover{color:#e0e0e0}
+#modal-body{padding:12px 16px;overflow-y:auto;flex:1}
+#strat-list{display:flex;flex-direction:column;gap:8px}
+.strat-card{background:#1e2130;border:1px solid #23263a;border-radius:7px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.strat-card:hover{background:#252940;border-color:#343854}
+.strat-card-info{flex:1}
+.strat-card-name{font-size:13px;font-weight:600;color:#e0e0e0}
+.strat-card-meta{font-size:10px;color:#555;margin-top:2px}
+.strat-card-del{background:none;border:none;color:#4a2020;cursor:pointer;font-size:16px;padding:4px}
+.strat-card-del:hover{color:#e07070}
+#no-strats{color:#3a3f5a;font-size:12px;text-align:center;padding:24px 0}
 </style>
 </head>
 <body>
-
 <div id="app">
   <div id="toolbar">
-    <input id="sname" placeholder="Strategy name..." value="New Strategy" />
+    <input id="sname" placeholder="Strategy name..." value="New Strategy"/>
     <div class="sep"></div>
     <select id="map-sel">
       <option value="de_mirage">Mirage</option>
@@ -166,19 +91,18 @@ html, body { height: 100%; background: #0a0c12; font-family: -apple-system, Blin
       <option value="de_train">Train</option>
     </select>
     <div class="sep"></div>
-    <!-- Drawing tools -->
     <div style="display:flex;gap:3px">
       <div class="tb-btn active" data-tool="select">🖱️<span class="tip">Select / Move</span></div>
+      <div class="tb-btn" data-tool="pan" style="font-size:14px">✋<span class="tip">Pan map (or hold Space)</span></div>
       <div class="tb-btn" data-tool="draw">✏️<span class="tip">Freehand path</span></div>
       <div class="tb-btn" data-tool="arrow">➡️<span class="tip">Arrow</span></div>
       <div class="tb-btn" data-tool="text" style="font-size:13px;font-weight:700">T<span class="tip">Add label</span></div>
     </div>
     <div class="sep"></div>
-    <!-- Entity tools -->
     <div style="display:flex;gap:3px">
       <div class="tb-btn" data-tool="ct">🔵<span class="tip">CT Player</span></div>
       <div class="tb-btn" data-tool="t">🟡<span class="tip">T Player</span></div>
-      <div class="tb-btn" data-tool="bomb">💣<span class="tip">Bomb / C4</span></div>
+      <div class="tb-btn" data-tool="bomb" style="padding:4px"><span class="tip">Bomb / C4</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="11" cy="14" rx="7.5" ry="7.5" fill="#2a2a2a" stroke="#aaa" stroke-width="1.4"/><rect x="10.2" y="3" width="1.6" height="5" rx=".8" fill="#aaa"/><line x1="11" y1="6.5" x2="16" y2="4" stroke="#e8c840" stroke-width="1.3" stroke-linecap="round"/><circle cx="17" cy="3.5" r="1.4" fill="#e8c840"/><circle cx="11" cy="14" r="3" fill="#555"/><circle cx="9.5" cy="12.5" r=".8" fill="#888"/></svg></div>
       <div class="tb-btn" data-tool="smoke">🌫️<span class="tip">Smoke grenade</span></div>
       <div class="tb-btn" data-tool="flash">💥<span class="tip">Flashbang</span></div>
       <div class="tb-btn" data-tool="molotov">🔥<span class="tip">Molotov / Inc</span></div>
@@ -186,13 +110,19 @@ html, body { height: 100%; background: #0a0c12; font-family: -apple-system, Blin
       <div class="tb-btn" data-tool="sniper">🎯<span class="tip">AWP Position</span></div>
     </div>
     <div class="sep"></div>
-    <!-- Special tools -->
     <div style="display:flex;gap:3px">
       <div class="tb-btn" data-tool="waypoint" style="font-size:13px;font-weight:700;color:#e8c840">①<span class="tip">Waypoint / Step</span></div>
       <div class="tb-btn" data-tool="smokezone">⭕<span class="tip">Smoke landing zone</span></div>
+      <div class="tb-btn" data-tool="molotovzone" style="font-size:14px">🔥<span class="tip">Molotov zone</span></div>
     </div>
     <div class="sep"></div>
-    <!-- Actions -->
+    <div style="display:flex;gap:3px;align-items:center">
+      <div class="tb-btn" id="zoom-out-btn" style="font-size:18px;font-weight:300">−<span class="tip">Zoom out</span></div>
+      <span id="zoom-display">100%</span>
+      <div class="tb-btn" id="zoom-in-btn" style="font-size:16px;font-weight:300">+<span class="tip">Zoom in</span></div>
+      <div class="tb-btn" id="zoom-reset-btn" style="font-size:10px;font-weight:600;color:#888">FIT<span class="tip">Reset zoom</span></div>
+    </div>
+    <div class="sep"></div>
     <div style="display:flex;gap:3px">
       <div class="tb-btn" id="undo-btn">↩️<span class="tip">Undo (Ctrl+Z)</span></div>
       <div class="tb-btn" id="clear-btn">🗑️<span class="tip">Clear board</span></div>
@@ -203,14 +133,12 @@ html, body { height: 100%; background: #0a0c12; font-family: -apple-system, Blin
 
   <div id="board">
     <div id="cvwrap"><canvas id="cv"></canvas></div>
-
     <div id="sidebar">
       <div class="s-lbl">Team</div>
       <div class="team-row">
         <button class="t-btn ct active" id="ct-btn">◆ CT</button>
         <button class="t-btn t" id="t-btn2">◆ T</button>
       </div>
-
       <div class="s-lbl">Line Color</div>
       <div class="color-row" id="color-picker">
         <div class="c-dot active" data-color="#60aaff" style="background:#60aaff"></div>
@@ -220,7 +148,6 @@ html, body { height: 100%; background: #0a0c12; font-family: -apple-system, Blin
         <div class="c-dot" data-color="#cc60cc" style="background:#cc60cc"></div>
         <div class="c-dot" data-color="#ffffff" style="background:#fff;border-color:#555"></div>
       </div>
-
       <div class="s-lbl">Round Timer</div>
       <div id="timer-display">
         <div id="timer-val">1:55</div>
@@ -231,15 +158,11 @@ html, body { height: 100%; background: #0a0c12; font-family: -apple-system, Blin
         <button class="timer-btn" id="timer-pause">⏸ Pause</button>
         <button class="timer-btn" id="timer-reset">↺ Reset</button>
       </div>
-
       <div class="s-lbl">Notes</div>
-      <textarea id="notes" placeholder="Describe the strategy...&#10;&#10;e.g. 3 rush B, smoke van, flash over..."></textarea>
-
+      <textarea id="notes" placeholder="Describe the strategy...&#10;&#10;e.g. 3 rush B, smoke van..."></textarea>
       <div class="s-lbl">Selected</div>
       <div id="sel-info">Click an element to select</div>
-
       <div style="flex:1"></div>
-
       <div class="s-lbl">Strat Library</div>
       <div class="act-row">
         <button class="a-btn" id="save-btn">💾 Save</button>
@@ -251,28 +174,23 @@ html, body { height: 100%; background: #0a0c12; font-family: -apple-system, Blin
   </div>
 </div>
 
-<!-- Toast -->
 <div id="toast"></div>
-
-<!-- Library modal -->
 <div id="modal-bg">
   <div id="modal">
     <div id="modal-header">
       <h2>📚 Strat Library</h2>
       <button id="modal-close">×</button>
     </div>
-    <div id="modal-body">
-      <div id="strat-list"></div>
-    </div>
+    <div id="modal-body"><div id="strat-list"></div></div>
   </div>
 </div>
 
 <script>
-/* ─────────────────────────────────────────────
-   State
-───────────────────────────────────────────── */
-const cv  = document.getElementById('cv');
-const ctx = cv.getContext('2d');
+/* ═══════════════════════════════════════════
+   CONSTANTS & STATE
+═══════════════════════════════════════════ */
+const cv   = document.getElementById('cv');
+const ctx  = cv.getContext('2d');
 const wrap = document.getElementById('cvwrap');
 
 const BASE = 'https://cdn.jsdelivr.net/gh/MurkyYT/cs2-map-icons@main/images/radars/';
@@ -288,557 +206,728 @@ const MAP_URLS = {
   de_train:    BASE+'de_train_radar_psd.png',
 };
 
+// CS2 real-world smoke radius ≈ 144 units, map is ~4096 units wide
+// We scale to fraction of radar image width so it looks right at any zoom
+const SMOKE_RADIUS_FRAC  = 0.055;  // ~5.5% of map image width
+const MOLOTOV_RADIUS_FRAC = 0.038; // ~3.8% of map image width
+
 let W = 0, H = 0;
-let currentMap  = 'de_mirage';
-let currentTool = 'select';
+let currentMap   = 'de_mirage';
+let currentTool  = 'select';
 let currentColor = '#60aaff';
 let elements = [], selectedEl = null, undoStack = [];
-let isDragging = false, dragOffset = {x:0,y:0};
-let isDrawing = false, drawPath = [];
-let isSmokeDrawing = false, smokeCenter = null;
-let playerCnt = {ct:1, t:1}, waypointCnt = 1;
 let mapImages = {}, mapLoaded = false;
+let playerCnt = {ct:1,t:1}, waypointCnt = 1;
 
-// Timer
+// ── Viewport transform ──
+let vx = 0, vy = 0, vz = 1; // pan x, pan y, zoom
+const MIN_Z = 0.3, MAX_Z = 8;
+
+// ── Interaction state ──
+let isPanning    = false, panStart = null, panOrigin = null;
+let spaceDown    = false;
+let isDragging   = false, dragOffset = {x:0,y:0};
+let isDrawing    = false, drawPath  = [];
+let isZoneDrawing = false, zoneStart = null, zoneTool = '';
+
+// ── Timer ──
 let timerSec = 115, timerRunning = false, timerInterval = null;
 const PHASES = [
-  {t:115, label:'Buy Phase'},
-  {t:105, label:'Live Round'},
-  {t:40,  label:'Late Round'},
-  {t:15,  label:'Overtime!'},
-  {t:0,   label:'Round Over'},
+  {t:115,label:'Buy Phase'},{t:105,label:'Live Round'},
+  {t:40,label:'Late Round'},{t:15,label:'Overtime!'},{t:0,label:'Round Over'},
 ];
 function getPhase(s){ for(let i=0;i<PHASES.length-1;i++) if(s>=PHASES[i+1].t) return PHASES[i].label; return 'Round Over'; }
 function fmtTime(s){ const m=Math.floor(s/60),sc=s%60; return m+':'+(sc<10?'0':'')+sc; }
 function updateTimerUI(){
-  document.getElementById('timer-val').textContent  = fmtTime(timerSec);
+  document.getElementById('timer-val').textContent   = fmtTime(timerSec);
   document.getElementById('timer-phase').textContent = getPhase(timerSec);
-  document.getElementById('timer-val').style.color  = timerSec>40?'#e8c840':timerSec>15?'#e08030':'#e03030';
+  document.getElementById('timer-val').style.color   = timerSec>40?'#e8c840':timerSec>15?'#e08030':'#e03030';
 }
-document.getElementById('timer-start').onclick = () => {
-  if(timerRunning||timerSec<=0) return;
-  timerRunning = true;
-  timerInterval = setInterval(()=>{ if(timerSec>0){timerSec--;updateTimerUI();}else{clearInterval(timerInterval);timerRunning=false;} },1000);
+document.getElementById('timer-start').onclick = ()=>{
+  if(timerRunning||timerSec<=0)return; timerRunning=true;
+  timerInterval=setInterval(()=>{ if(timerSec>0){timerSec--;updateTimerUI();}else{clearInterval(timerInterval);timerRunning=false;} },1000);
 };
-document.getElementById('timer-pause').onclick = () => { timerRunning=false; clearInterval(timerInterval); };
-document.getElementById('timer-reset').onclick = () => { timerRunning=false; clearInterval(timerInterval); timerSec=115; updateTimerUI(); };
+document.getElementById('timer-pause').onclick = ()=>{ timerRunning=false; clearInterval(timerInterval); };
+document.getElementById('timer-reset').onclick = ()=>{ timerRunning=false; clearInterval(timerInterval); timerSec=115; updateTimerUI(); };
 updateTimerUI();
 
-/* ─────────────────────────────────────────────
-   Canvas sizing
-───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   RESIZE
+═══════════════════════════════════════════ */
 function resize(){
   W = wrap.offsetWidth; H = wrap.offsetHeight;
-  cv.width = W; cv.height = H;
+  cv.width=W; cv.height=H;
   render();
 }
 window.addEventListener('resize', resize);
 
-/* ─────────────────────────────────────────────
-   Map loading
-───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   MAP LOADING
+═══════════════════════════════════════════ */
 function loadMap(key){
-  if(mapImages[key]){ mapLoaded=true; render(); setStatus(''); return; }
-  mapLoaded = false; setStatus('Loading map radar...');
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload  = () => { mapImages[key]=img; mapLoaded=true; setStatus(''); render(); };
-  img.onerror = () => { setStatus('Map failed — check network'); render(); };
-  img.src = MAP_URLS[key];
+  if(mapImages[key]){ mapLoaded=true; fitMap(); return; }
+  mapLoaded=false; setStatus('Loading map radar...');
+  const img=new Image(); img.crossOrigin='anonymous';
+  img.onload  = ()=>{ mapImages[key]=img; mapLoaded=true; setStatus(''); fitMap(); };
+  img.onerror = ()=>{ setStatus('Map failed — check network'); render(); };
+  img.src=MAP_URLS[key];
 }
-function setStatus(m){ document.getElementById('map-status').textContent = m; }
+function setStatus(m){ document.getElementById('map-status').textContent=m; }
 
-/* ─────────────────────────────────────────────
-   Render
-───────────────────────────────────────────── */
-const ICONS = { ct:'🔵', t:'🟡', bomb:'💣', smoke:'🌫️', flash:'💥', molotov:'🔥', nade:'💚', sniper:'🎯' };
-const ICON_SZ = { ct:18, t:18, bomb:16, smoke:22, flash:16, molotov:20, nade:16, sniper:16 };
+function fitMap(){
+  if(!mapImages[currentMap]){ render(); return; }
+  const img=mapImages[currentMap];
+  const s=Math.min(W/img.width, H/img.height);
+  vz=s; vx=(W-img.width*s)/2; vy=(H-img.height*s)/2;
+  updateZoomUI(); render();
+}
 
+/* ═══════════════════════════════════════════
+   COORDINATE HELPERS
+   All elements are stored in MAP-IMAGE space (pixels of the radar PNG).
+   We transform to screen via: sx = vx + wx*vz, sy = vy + wy*vz
+═══════════════════════════════════════════ */
+function toScreen(wx,wy){ return { x: vx+wx*vz, y: vy+wy*vz }; }
+function toWorld(sx,sy){ return { x: (sx-vx)/vz, y: (sy-vy)/vz }; }
+function worldR(r){ return r*vz; } // world-space radius to screen pixels
+
+/* ═══════════════════════════════════════════
+   ZOOM
+═══════════════════════════════════════════ */
+function zoomAt(sx,sy,factor){
+  const newZ = Math.min(MAX_Z, Math.max(MIN_Z, vz*factor));
+  const ratio = newZ/vz;
+  vx = sx - (sx-vx)*ratio;
+  vy = sy - (sy-vy)*ratio;
+  vz = newZ;
+  updateZoomUI(); render();
+}
+function updateZoomUI(){
+  document.getElementById('zoom-display').textContent = Math.round(vz*100)+'%';
+}
+document.getElementById('zoom-in-btn').onclick  = ()=>zoomAt(W/2,H/2,1.3);
+document.getElementById('zoom-out-btn').onclick = ()=>zoomAt(W/2,H/2,1/1.3);
+document.getElementById('zoom-reset-btn').onclick = fitMap;
+
+cv.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  zoomAt(e.clientX-r.left, e.clientY-r.top, e.deltaY<0?1.12:1/1.12);
+}, {passive:false});
+
+/* ═══════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════ */
 function render(){
   ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = '#0a0c12'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#0a0c12'; ctx.fillRect(0,0,W,H);
 
   if(mapLoaded && mapImages[currentMap]){
-    const img = mapImages[currentMap];
-    const scale = Math.min(W/img.width, H/img.height);
-    const sw = img.width*scale, sh = img.height*scale;
-    const ox = (W-sw)/2, oy = (H-sh)/2;
-    ctx.drawImage(img, ox, oy, sw, sh);
+    const img=mapImages[currentMap];
+    ctx.drawImage(img, vx, vy, img.width*vz, img.height*vz);
   } else {
-    ctx.fillStyle = '#1a1e2a'; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle = '#444'; ctx.font = '14px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle='#1a1e2a'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#444'; ctx.font='14px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('Loading map radar...', W/2, H/2);
   }
 
   for(const el of elements) drawEl(el, el===selectedEl);
 
-  // Smoke zone preview
-  if(isSmokeDrawing && smokeCenter){
-    ctx.save(); ctx.globalAlpha=0.35;
-    ctx.beginPath(); ctx.arc(smokeCenter.x, smokeCenter.y, smokeCenter.r||2, 0, Math.PI*2);
-    ctx.fillStyle='#88aacc'; ctx.fill();
-    ctx.strokeStyle='#aaccee'; ctx.lineWidth=1.5; ctx.stroke();
+  // Live zone preview
+  if(isZoneDrawing && zoneStart){
+    const s=toScreen(zoneStart.x,zoneStart.y);
+    ctx.save(); ctx.globalAlpha=0.3;
+    ctx.beginPath(); ctx.arc(s.x,s.y,zoneStart.r*vz||2,0,Math.PI*2);
+    ctx.fillStyle = zoneTool==='molotovzone'?'#c04010':'#88aacc';
+    ctx.fill();
+    ctx.strokeStyle = zoneTool==='molotovzone'?'#ff6020':'#aaccee';
+    ctx.lineWidth=1.5; ctx.stroke();
     ctx.restore();
   }
 
-  // Path preview
+  // Live draw preview
   if(isDrawing && drawPath.length>1){
-    ctx.strokeStyle=currentColor; ctx.lineWidth=2.5;
+    ctx.strokeStyle=currentColor; ctx.lineWidth=Math.max(1.5,2.2/vz*vz);
     ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash([5,4]);
-    ctx.beginPath(); ctx.moveTo(drawPath[0].x,drawPath[0].y);
-    for(let i=1;i<drawPath.length;i++) ctx.lineTo(drawPath[i].x,drawPath[i].y);
+    ctx.beginPath();
+    const p0=toScreen(drawPath[0].x,drawPath[0].y);
+    ctx.moveTo(p0.x,p0.y);
+    for(let i=1;i<drawPath.length;i++){ const p=toScreen(drawPath[i].x,drawPath[i].y); ctx.lineTo(p.x,p.y); }
     ctx.stroke(); ctx.setLineDash([]);
-    if(currentTool==='arrow'&&drawPath.length>=2) arrowHead(drawPath[drawPath.length-2],drawPath[drawPath.length-1],currentColor);
+    if(currentTool==='arrow'&&drawPath.length>=2){
+      const pa=toScreen(drawPath[drawPath.length-2].x,drawPath[drawPath.length-2].y);
+      const pb=toScreen(drawPath[drawPath.length-1].x,drawPath[drawPath.length-1].y);
+      arrowHead(pa,pb,currentColor);
+    }
   }
+
+  // Pan cursor hint
+  if(isPanning) cv.style.cursor='grabbing';
+  else if(currentTool==='pan'||spaceDown) cv.style.cursor='grab';
+  else if(currentTool==='select') cv.style.cursor='default';
+  else if(currentTool==='smokezone'||currentTool==='molotovzone') cv.style.cursor='cell';
+  else cv.style.cursor='crosshair';
 }
 
-function arrowHead(from, to, color, size=13){
-  const a = Math.atan2(to.y-from.y, to.x-from.x);
-  ctx.fillStyle = color;
+function arrowHead(from,to,color,size=13){
+  const a=Math.atan2(to.y-from.y,to.x-from.x);
+  ctx.fillStyle=color;
   ctx.beginPath();
-  ctx.moveTo(to.x, to.y);
-  ctx.lineTo(to.x - size*Math.cos(a-0.4), to.y - size*Math.sin(a-0.4));
-  ctx.lineTo(to.x - size*Math.cos(a+0.4), to.y - size*Math.sin(a+0.4));
+  ctx.moveTo(to.x,to.y);
+  ctx.lineTo(to.x-size*Math.cos(a-0.4),to.y-size*Math.sin(a-0.4));
+  ctx.lineTo(to.x-size*Math.cos(a+0.4),to.y-size*Math.sin(a+0.4));
   ctx.closePath(); ctx.fill();
 }
 
+/* ─── per-element draw (all coords in screen space) ─── */
 function drawEl(el, sel){
   ctx.save();
   if(sel){ ctx.shadowColor='#e8c840'; ctx.shadowBlur=10; }
 
   if(el.type==='player'){
-    ctx.beginPath(); ctx.arc(el.x,el.y,15,0,Math.PI*2);
-    ctx.fillStyle = el.team==='ct'?'#0e2f50':'#4a2e00'; ctx.fill();
-    ctx.strokeStyle = el.team==='ct'?'#4a9ed8':'#d49020';
-    ctx.lineWidth = sel?2.5:1.8; ctx.stroke();
-    ctx.fillStyle = el.team==='ct'?'#80c8ff':'#ffcc55';
-    ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(el.label, el.x, el.y);
+    const s=toScreen(el.x,el.y), r=Math.max(8,15*Math.min(vz,2));
+    ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2);
+    ctx.fillStyle=el.team==='ct'?'#0e2f50':'#4a2e00'; ctx.fill();
+    ctx.strokeStyle=el.team==='ct'?'#4a9ed8':'#d49020';
+    ctx.lineWidth=sel?2.5:1.8; ctx.stroke();
+    ctx.fillStyle=el.team==='ct'?'#80c8ff':'#ffcc55';
+    const fs=Math.max(8,11*Math.min(vz,2));
+    ctx.font=`bold ${fs}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(el.label,s.x,s.y);
 
   } else if(el.type==='waypoint'){
-    ctx.beginPath(); ctx.arc(el.x,el.y,13,0,Math.PI*2);
+    const s=toScreen(el.x,el.y), r=Math.max(7,13*Math.min(vz,2));
+    ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2);
     ctx.fillStyle='#1a1400'; ctx.fill();
     ctx.strokeStyle='#e8c840'; ctx.lineWidth=sel?2.5:2; ctx.stroke();
     ctx.fillStyle='#e8c840';
-    ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(el.num, el.x, el.y);
-    if(sel){ ctx.strokeStyle='rgba(232,200,64,0.3)'; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(el.x,el.y,18,0,Math.PI*2); ctx.stroke(); }
+    const fs=Math.max(7,12*Math.min(vz,2));
+    ctx.font=`bold ${fs}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(el.num,s.x,s.y);
+    if(sel){ ctx.strokeStyle='rgba(232,200,64,0.3)'; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(s.x,s.y,r+5,0,Math.PI*2); ctx.stroke(); }
 
   } else if(el.type==='smokezone'){
-    ctx.globalAlpha=0.28;
-    ctx.beginPath(); ctx.arc(el.x,el.y,el.r,0,Math.PI*2);
-    ctx.fillStyle='#88aacc'; ctx.fill();
-    ctx.globalAlpha=0.7;
-    ctx.strokeStyle='#aaccee'; ctx.lineWidth=sel?2:1.5; ctx.stroke();
-    ctx.globalAlpha=1;
-    ctx.font='11px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('🌫️', el.x, el.y);
-    if(sel){ ctx.strokeStyle='rgba(232,200,64,0.5)'; ctx.lineWidth=2; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.arc(el.x,el.y,el.r+3,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
+    const s=toScreen(el.x,el.y);
+    // radius is stored as fraction of map image width
+    const mapW = mapImages[currentMap]?mapImages[currentMap].width:1024;
+    const sr = el.r * mapW * vz;
+    drawSmokeZone(s.x,s.y,sr,sel);
+
+  } else if(el.type==='molotovzone'){
+    const s=toScreen(el.x,el.y);
+    const mapW = mapImages[currentMap]?mapImages[currentMap].width:1024;
+    const sr = el.r * mapW * vz;
+    drawMolotovZone(s.x,s.y,sr,sel);
 
   } else if(el.type==='icon'){
-    if(el.icon==='smoke'){
-      ctx.globalAlpha=0.65;
-      ctx.beginPath(); ctx.arc(el.x,el.y,18,0,Math.PI*2);
-      ctx.fillStyle='#7a8fa0'; ctx.fill();
-      ctx.strokeStyle='#aabbcc'; ctx.lineWidth=1; ctx.stroke();
-      ctx.globalAlpha=1;
-    } else if(el.icon==='molotov'){
-      ctx.globalAlpha=0.55;
-      ctx.beginPath(); ctx.arc(el.x,el.y,17,0,Math.PI*2);
-      ctx.fillStyle='#801000'; ctx.fill();
-      ctx.globalAlpha=1;
-    }
-    ctx.font=ICON_SZ[el.icon]+'px serif';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(ICONS[el.icon], el.x, el.y);
-    if(sel){ ctx.strokeStyle='#e8c840'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(el.x,el.y,21,0,Math.PI*2); ctx.stroke(); }
+    const s=toScreen(el.x,el.y);
+    drawIcon(el.icon, s.x, s.y, sel);
 
   } else if(el.type==='path'){
     if(el.points.length<2){ ctx.restore(); return; }
-    ctx.strokeStyle = el.color||currentColor;
-    ctx.lineWidth = sel?3:2.2; ctx.lineCap='round'; ctx.lineJoin='round';
-    ctx.beginPath(); ctx.moveTo(el.points[0].x,el.points[0].y);
-    for(let i=1;i<el.points.length;i++) ctx.lineTo(el.points[i].x,el.points[i].y);
+    ctx.strokeStyle=el.color||currentColor;
+    ctx.lineWidth=sel?3:2.2; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    const p0=toScreen(el.points[0].x,el.points[0].y); ctx.moveTo(p0.x,p0.y);
+    for(let i=1;i<el.points.length;i++){ const p=toScreen(el.points[i].x,el.points[i].y); ctx.lineTo(p.x,p.y); }
     ctx.stroke();
-    if(el.arrow&&el.points.length>=2) arrowHead(el.points[el.points.length-2],el.points[el.points.length-1],el.color||currentColor);
+    if(el.arrow&&el.points.length>=2){
+      const pa=toScreen(el.points[el.points.length-2].x,el.points[el.points.length-2].y);
+      const pb=toScreen(el.points[el.points.length-1].x,el.points[el.points.length-1].y);
+      arrowHead(pa,pb,el.color||currentColor);
+    }
     if(sel){
       ctx.strokeStyle='rgba(232,200,64,0.2)'; ctx.lineWidth=8;
-      ctx.beginPath(); ctx.moveTo(el.points[0].x,el.points[0].y);
-      for(let i=1;i<el.points.length;i++) ctx.lineTo(el.points[i].x,el.points[i].y);
+      ctx.beginPath();
+      const q0=toScreen(el.points[0].x,el.points[0].y); ctx.moveTo(q0.x,q0.y);
+      for(let i=1;i<el.points.length;i++){ const q=toScreen(el.points[i].x,el.points[i].y); ctx.lineTo(q.x,q.y); }
       ctx.stroke();
     }
+
   } else if(el.type==='text'){
-    ctx.font='500 13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='top';
-    const tw = ctx.measureText(el.text).width;
-    ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(el.x-2,el.y-2,tw+8,19);
-    ctx.fillStyle='#fff'; ctx.fillText(el.text, el.x+2, el.y+1);
-    if(sel){ ctx.strokeStyle='#e8c840'; ctx.lineWidth=1; ctx.strokeRect(el.x-3,el.y-3,tw+10,21); }
+    const s=toScreen(el.x,el.y);
+    const fs=Math.max(9,13*Math.min(vz,2));
+    ctx.font=`500 ${fs}px sans-serif`; ctx.textAlign='left'; ctx.textBaseline='top';
+    const tw=ctx.measureText(el.text).width;
+    ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(s.x-2,s.y-2,tw+8,fs+6);
+    ctx.fillStyle='#fff'; ctx.fillText(el.text,s.x+2,s.y+1);
+    if(sel){ ctx.strokeStyle='#e8c840'; ctx.lineWidth=1; ctx.strokeRect(s.x-3,s.y-3,tw+10,fs+8); }
   }
   ctx.restore();
 }
 
-/* ─────────────────────────────────────────────
-   Hit testing
-───────────────────────────────────────────── */
+/* ─── Smoke zone: clean grey circle, no emoji ─── */
+function drawSmokeZone(sx,sy,sr,sel){
+  ctx.save();
+  // outer tinted fill
+  ctx.globalAlpha=0.22;
+  ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2);
+  ctx.fillStyle='#b0cce0'; ctx.fill();
+  // wispy ring
+  ctx.globalAlpha=0.55;
+  ctx.strokeStyle='#c8dff0'; ctx.lineWidth=1.5; ctx.stroke();
+  // inner gradient-like darker core
+  ctx.globalAlpha=0.12;
+  ctx.beginPath(); ctx.arc(sx,sy,sr*0.55,0,Math.PI*2);
+  ctx.fillStyle='#8ab0cc'; ctx.fill();
+  ctx.globalAlpha=1;
+  // centre marker: small S label
+  const fs=Math.max(9,Math.min(sr*0.45,16));
+  ctx.font=`600 ${fs}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(180,210,230,0.85)'; ctx.fillText('S',sx,sy);
+  if(sel){ ctx.strokeStyle='rgba(232,200,64,0.6)'; ctx.lineWidth=2; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.arc(sx,sy,sr+3,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.restore();
+}
+
+/* ─── Molotov zone: fire-coloured fill drawn with canvas paths ─── */
+function drawMolotovZone(sx,sy,sr,sel){
+  ctx.save();
+  ctx.globalAlpha=0.3;
+  ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2);
+  ctx.fillStyle='#d04010'; ctx.fill();
+  ctx.globalAlpha=0.6;
+  ctx.strokeStyle='#ff7030'; ctx.lineWidth=1.5; ctx.stroke();
+  // inner hot core
+  ctx.globalAlpha=0.25;
+  ctx.beginPath(); ctx.arc(sx,sy,sr*0.5,0,Math.PI*2);
+  ctx.fillStyle='#ffcc00'; ctx.fill();
+  ctx.globalAlpha=1;
+  // draw a small canvas-path flame in the centre
+  drawFlamePath(sx,sy,Math.max(7,Math.min(sr*0.45,20)));
+  if(sel){ ctx.strokeStyle='rgba(232,200,64,0.6)'; ctx.lineWidth=2; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.arc(sx,sy,sr+3,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.restore();
+}
+
+function drawFlamePath(cx,cy,size){
+  // Draws a simple teardrop flame using bezier curves (no emoji)
+  ctx.save();
+  ctx.translate(cx, cy+size*0.3);
+  // outer flame
+  ctx.beginPath();
+  ctx.moveTo(0, -size);
+  ctx.bezierCurveTo( size*0.6, -size*0.5,  size*0.5,  size*0.3, 0,  size*0.4);
+  ctx.bezierCurveTo(-size*0.5,  size*0.3, -size*0.6, -size*0.5, 0, -size);
+  ctx.closePath();
+  const g1=ctx.createLinearGradient(0,-size,0,size*0.4);
+  g1.addColorStop(0,'rgba(255,200,0,0.95)');
+  g1.addColorStop(0.5,'rgba(255,80,0,0.9)');
+  g1.addColorStop(1,'rgba(180,20,0,0.8)');
+  ctx.fillStyle=g1; ctx.fill();
+  // inner bright core
+  ctx.beginPath();
+  ctx.moveTo(0,-size*0.4);
+  ctx.bezierCurveTo( size*0.25,-size*0.1, size*0.2, size*0.2, 0, size*0.3);
+  ctx.bezierCurveTo(-size*0.2, size*0.2, -size*0.25,-size*0.1, 0,-size*0.4);
+  ctx.closePath();
+  const g2=ctx.createLinearGradient(0,-size*0.4,0,size*0.3);
+  g2.addColorStop(0,'rgba(255,240,180,0.9)');
+  g2.addColorStop(1,'rgba(255,160,0,0.7)');
+  ctx.fillStyle=g2; ctx.fill();
+  ctx.restore();
+}
+
+/* ─── Icon renderer ─── */
+function drawIcon(icon, sx, sy, sel){
+  const baseR = Math.max(10, 16*Math.min(vz,2));
+
+  if(icon==='bomb'){
+    drawBombIcon(sx, sy, baseR*1.1, sel);
+    return;
+  }
+  if(icon==='molotov'){
+    // Ground indicator: small flame only
+    drawFlamePath(sx, sy, baseR*0.9);
+    if(sel){ ctx.strokeStyle='#e8c840'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(sx,sy,baseR+4,0,Math.PI*2); ctx.stroke(); }
+    return;
+  }
+  if(icon==='smoke'){
+    drawSmokeIcon(sx, sy, baseR, sel);
+    return;
+  }
+
+  // All other icons use emoji rendered via canvas font
+  const EMOJI = {flash:'💥', nade:'💚', sniper:'🎯', ct:'🔵', t:'🟡'};
+  const SZ = {flash:16, nade:16, sniper:16, ct:18, t:18};
+  if(icon==='ct'||icon==='t'){
+    ctx.beginPath(); ctx.arc(sx,sy,baseR,0,Math.PI*2);
+    ctx.fillStyle=icon==='ct'?'#0e2f50':'#4a2e00'; ctx.fill();
+    ctx.strokeStyle=icon==='ct'?'#4a9ed8':'#d49020';
+    ctx.lineWidth=sel?2.5:1.8; ctx.stroke();
+  }
+  const fs=Math.max(10, SZ[icon]*Math.min(vz,2));
+  ctx.font=`${fs}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(EMOJI[icon]||'?', sx, sy);
+  if(sel){ ctx.strokeStyle='#e8c840'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(sx,sy,baseR+4,0,Math.PI*2); ctx.stroke(); }
+}
+
+/* ─── CS2-style bomb drawn with canvas paths (no emoji) ─── */
+function drawBombIcon(sx,sy,r,sel){
+  ctx.save();
+  // body
+  ctx.beginPath(); ctx.arc(sx,sy+r*0.1,r*0.85,0,Math.PI*2);
+  ctx.fillStyle='#222'; ctx.fill();
+  ctx.strokeStyle='#888'; ctx.lineWidth=1.4; ctx.stroke();
+  // detonator bump
+  ctx.beginPath(); ctx.arc(sx-r*0.25,sy-r*0.35,r*0.25,0,Math.PI*2);
+  ctx.fillStyle='#444'; ctx.fill();
+  ctx.strokeStyle='#777'; ctx.lineWidth=1; ctx.stroke();
+  // fuse stem
+  ctx.beginPath();
+  ctx.moveTo(sx,sy-r*0.85);
+  ctx.lineTo(sx,sy-r*1.4);
+  ctx.strokeStyle='#aaa'; ctx.lineWidth=Math.max(1,r*0.12); ctx.lineCap='round'; ctx.stroke();
+  // fuse wire curving to spark
+  ctx.beginPath();
+  ctx.moveTo(sx,sy-r*1.4);
+  ctx.bezierCurveTo(sx+r*0.4,sy-r*1.6, sx+r*0.8,sy-r*1.3, sx+r*1.0,sy-r*1.05);
+  ctx.strokeStyle='#e8c840'; ctx.lineWidth=Math.max(1,r*0.1); ctx.stroke();
+  // spark
+  ctx.beginPath(); ctx.arc(sx+r*1.0,sy-r*1.05,r*0.2,0,Math.PI*2);
+  ctx.fillStyle='#ffe060'; ctx.fill();
+  // shine
+  ctx.beginPath(); ctx.arc(sx-r*0.3,sy-r*0.2,r*0.2,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fill();
+  if(sel){ ctx.shadowColor='#e8c840'; ctx.shadowBlur=10; ctx.strokeStyle='#e8c840'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(sx,sy+r*0.1,r+4,0,Math.PI*2); ctx.stroke(); }
+  ctx.restore();
+}
+
+/* ─── Smoke grenade icon: small grey canister, no emoji ─── */
+function drawSmokeIcon(sx,sy,r,sel){
+  ctx.save();
+  // body
+  ctx.beginPath(); ctx.roundRect(sx-r*0.45,sy-r*0.7,r*0.9,r*1.3,r*0.2);
+  ctx.fillStyle='#5a7a5a'; ctx.fill();
+  ctx.strokeStyle='#8aaa8a'; ctx.lineWidth=1.2; ctx.stroke();
+  // pin ring
+  ctx.beginPath(); ctx.arc(sx,sy-r*0.75,r*0.18,0,Math.PI*2);
+  ctx.strokeStyle='#ccc'; ctx.lineWidth=1.2; ctx.stroke();
+  // smoke puffs above
+  ctx.globalAlpha=0.55;
+  [[0,r*1.0,r*0.32],[r*0.3,r*0.75,r*0.22],[-r*0.28,r*0.72,r*0.22]].forEach(([dx,dy,pr])=>{
+    ctx.beginPath(); ctx.arc(sx+dx,sy-dy,pr,0,Math.PI*2);
+    ctx.fillStyle='#c0ccd0'; ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  if(sel){ ctx.strokeStyle='#e8c840'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(sx,sy,r+4,0,Math.PI*2); ctx.stroke(); }
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════
+   HIT TESTING  (screen coords → world check)
+═══════════════════════════════════════════ */
 function getPos(e){
-  const r = cv.getBoundingClientRect();
-  const cl = e.touches ? e.touches[0] : e;
-  return { x: cl.clientX - r.left, y: cl.clientY - r.top };
+  const r=cv.getBoundingClientRect();
+  const cl=e.touches?e.touches[0]:e;
+  return { x:cl.clientX-r.left, y:cl.clientY-r.top };
+}
+function screenHitRadius(worldR){ return worldR*vz; }
+
+function distToSegWorld(pw,aw,bw){
+  const dx=bw.x-aw.x,dy=bw.y-aw.y,len2=dx*dx+dy*dy;
+  const t=len2?Math.max(0,Math.min(1,((pw.x-aw.x)*dx+(pw.y-aw.y)*dy)/len2)):0;
+  return Math.hypot(pw.x-aw.x-t*dx, pw.y-aw.y-t*dy);
 }
 
-function distToSeg(p,a,b){
-  const dx=b.x-a.x, dy=b.y-a.y, len2=dx*dx+dy*dy;
-  const t = len2 ? Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2)) : 0;
-  return Math.sqrt((p.x-a.x-t*dx)**2+(p.y-a.y-t*dy)**2);
-}
-
-function hitTest(pos){
-  for(let i=elements.length-1; i>=0; i--){
+function hitTest(spos){
+  const wp=toWorld(spos.x,spos.y);
+  // screen-space hit tolerance of 22px, converted to world
+  const tol=22/vz;
+  for(let i=elements.length-1;i>=0;i--){
     const el=elements[i];
     if(el.type==='player'||el.type==='icon'||el.type==='waypoint'){
-      if(Math.hypot(pos.x-el.x,pos.y-el.y)<22) return el;
-    } else if(el.type==='smokezone'){
-      if(Math.hypot(pos.x-el.x,pos.y-el.y)<el.r+5) return el;
+      if(Math.hypot(wp.x-el.x,wp.y-el.y)<tol) return el;
+    } else if(el.type==='smokezone'||el.type==='molotovzone'){
+      const mapW=mapImages[currentMap]?mapImages[currentMap].width:1024;
+      const wr=el.r*mapW;
+      if(Math.hypot(wp.x-el.x,wp.y-el.y)<wr+tol) return el;
     } else if(el.type==='text'){
-      ctx.font='500 13px sans-serif';
+      const s=toScreen(el.x,el.y);
+      const fs=Math.max(9,13*Math.min(vz,2));
+      ctx.font=`500 ${fs}px sans-serif`;
       const tw=ctx.measureText(el.text).width;
-      if(pos.x>=el.x-3&&pos.x<=el.x+tw+7&&pos.y>=el.y-3&&pos.y<=el.y+22) return el;
+      if(spos.x>=s.x-3&&spos.x<=s.x+tw+7&&spos.y>=s.y-3&&spos.y<=s.y+fs+8) return el;
     } else if(el.type==='path'){
+      const stol=10/vz;
       for(let j=0;j<el.points.length-1;j++)
-        if(distToSeg(pos,el.points[j],el.points[j+1])<10) return el;
+        if(distToSegWorld(wp,el.points[j],el.points[j+1])<stol) return el;
     }
   }
   return null;
 }
 
-/* ─────────────────────────────────────────────
-   Undo
-───────────────────────────────────────────── */
-function pushUndo(){ undoStack.push(JSON.stringify(elements)); if(undoStack.length>50) undoStack.shift(); }
-function undo(){ if(undoStack.length){ elements=JSON.parse(undoStack.pop()); selectedEl=null; updateSidebar(null); render(); } }
-
-/* ─────────────────────────────────────────────
-   Sidebar: selected element info
-───────────────────────────────────────────── */
-function updateSidebar(el){
-  const info = document.getElementById('sel-info');
-  if(!el){ info.innerHTML='<span style="color:#2e3350">Click an element to select</span>'; return; }
-  let h='';
-  if(el.type==='player')    h=`<div class="si-row">Type: <span>${el.team.toUpperCase()} Player</span></div><div class="si-row">Label: <span>${el.label}</span></div>`;
-  else if(el.type==='waypoint')   h=`<div class="si-row">Type: <span>Waypoint</span></div><div class="si-row">Step: <span>#${el.num}</span></div>`;
-  else if(el.type==='smokezone')  h=`<div class="si-row">Type: <span>Smoke Zone</span></div><div class="si-row">Radius: <span>${Math.round(el.r)}px</span></div>`;
-  else if(el.type==='icon')  h=`<div class="si-row">Type: <span>${el.icon.charAt(0).toUpperCase()+el.icon.slice(1)}</span></div>`;
-  else if(el.type==='path')  h=`<div class="si-row">Type: <span>${el.arrow?'Arrow':'Path'}</span></div>`;
-  else if(el.type==='text')  h=`<div class="si-row">Text: <span>${el.text.slice(0,16)}</span></div>`;
-  h += '<button class="del-btn" id="del-btn">🗑 Delete selected</button>';
-  info.innerHTML = h;
-  document.getElementById('del-btn').onclick = () => {
-    pushUndo(); elements=elements.filter(e=>e!==selectedEl);
-    selectedEl=null; updateSidebar(null); render();
-  };
-}
-
-/* ─────────────────────────────────────────────
-   Mouse / Touch events
-───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   INPUT EVENTS
+═══════════════════════════════════════════ */
 cv.addEventListener('mousedown', onDown);
 cv.addEventListener('mousemove', onMove);
 cv.addEventListener('mouseup',   onUp);
-cv.addEventListener('touchstart', e=>{ e.preventDefault(); onDown(e); }, {passive:false});
-cv.addEventListener('touchmove',  e=>{ e.preventDefault(); onMove(e); }, {passive:false});
-cv.addEventListener('touchend',   e=>{ e.preventDefault(); onUp(e);   }, {passive:false});
+cv.addEventListener('touchstart', e=>{ e.preventDefault(); onDown(e); },{passive:false});
+cv.addEventListener('touchmove',  e=>{ e.preventDefault(); onMove(e); },{passive:false});
+cv.addEventListener('touchend',   e=>{ e.preventDefault(); onUp(e);   },{passive:false});
+
+function isPanMode(){ return currentTool==='pan'||spaceDown; }
 
 function onDown(e){
-  const pos = getPos(e);
+  const spos=getPos(e);
+  const wpos=toWorld(spos.x,spos.y);
+
+  if(isPanMode()){
+    isPanning=true; panStart=spos; panOrigin={x:vx,y:vy};
+    render(); return;
+  }
   if(currentTool==='select'){
-    selectedEl = hitTest(pos);
+    selectedEl=hitTest(spos);
     if(selectedEl){
-      isDragging = true;
-      if(selectedEl.type==='path') dragOffset={x:pos.x-selectedEl.points[0].x,y:pos.y-selectedEl.points[0].y};
-      else dragOffset={x:pos.x-selectedEl.x,y:pos.y-selectedEl.y};
+      isDragging=true;
+      if(selectedEl.type==='path')
+        dragOffset={x:wpos.x-selectedEl.points[0].x, y:wpos.y-selectedEl.points[0].y};
+      else dragOffset={x:wpos.x-selectedEl.x, y:wpos.y-selectedEl.y};
     }
     updateSidebar(selectedEl); render();
   } else if(currentTool==='draw'||currentTool==='arrow'){
-    isDrawing=true; drawPath=[pos];
-  } else if(currentTool==='smokezone'){
-    isSmokeDrawing=true; smokeCenter={x:pos.x,y:pos.y,r:2};
+    isDrawing=true; drawPath=[wpos];
+  } else if(currentTool==='smokezone'||currentTool==='molotovzone'){
+    isZoneDrawing=true; zoneTool=currentTool;
+    zoneStart={x:wpos.x,y:wpos.y,r:0};
   } else if(currentTool==='text'){
-    const txt = prompt('Label text:');
-    if(txt&&txt.trim()){ pushUndo(); elements.push({type:'text',x:pos.x,y:pos.y,text:txt.trim()}); render(); }
+    const txt=prompt('Label text:');
+    if(txt&&txt.trim()){ pushUndo(); elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim()}); render(); }
   } else if(currentTool==='waypoint'){
-    pushUndo(); elements.push({type:'waypoint',x:pos.x,y:pos.y,num:waypointCnt++}); render();
+    pushUndo(); elements.push({type:'waypoint',x:wpos.x,y:wpos.y,num:waypointCnt++}); render();
   } else {
     pushUndo();
     if(currentTool==='ct'||currentTool==='t'){
-      const t=currentTool;
-      elements.push({type:'player',x:pos.x,y:pos.y,team:t,label:t.toUpperCase()+(playerCnt[t]++)});
+      elements.push({type:'player',x:wpos.x,y:wpos.y,team:currentTool,label:currentTool.toUpperCase()+(playerCnt[currentTool]++)});
     } else {
-      elements.push({type:'icon',x:pos.x,y:pos.y,icon:currentTool});
+      elements.push({type:'icon',x:wpos.x,y:wpos.y,icon:currentTool});
     }
     render();
   }
 }
 
 function onMove(e){
-  const pos = getPos(e);
+  const spos=getPos(e);
+  const wpos=toWorld(spos.x,spos.y);
+
+  if(isPanning && panStart){
+    vx=panOrigin.x+(spos.x-panStart.x);
+    vy=panOrigin.y+(spos.y-panStart.y);
+    render(); return;
+  }
   if(isDragging && selectedEl){
     if(selectedEl.type==='path'){
       const bx=selectedEl.points[0].x, by=selectedEl.points[0].y;
-      const dx=pos.x-dragOffset.x-bx, dy=pos.y-dragOffset.y-by;
+      const dx=wpos.x-dragOffset.x-bx, dy=wpos.y-dragOffset.y-by;
       selectedEl.points=selectedEl.points.map(p=>({x:p.x+dx,y:p.y+dy}));
-    } else { selectedEl.x=pos.x-dragOffset.x; selectedEl.y=pos.y-dragOffset.y; }
+      dragOffset={x:wpos.x-selectedEl.points[0].x, y:wpos.y-selectedEl.points[0].y};
+    } else { selectedEl.x=wpos.x-dragOffset.x; selectedEl.y=wpos.y-dragOffset.y; }
     render();
   } else if(isDrawing){
     const last=drawPath[drawPath.length-1];
-    if((pos.x-last.x)**2+(pos.y-last.y)**2>20){ drawPath.push(pos); render(); }
-  } else if(isSmokeDrawing && smokeCenter){
-    smokeCenter.r = Math.max(8, Math.hypot(pos.x-smokeCenter.x, pos.y-smokeCenter.y));
+    const threshold=4/vz;
+    if(Math.hypot(wpos.x-last.x,wpos.y-last.y)>threshold){ drawPath.push(wpos); render(); }
+  } else if(isZoneDrawing && zoneStart){
+    const mapW=mapImages[currentMap]?mapImages[currentMap].width:1024;
+    const dist=Math.hypot(wpos.x-zoneStart.x, wpos.y-zoneStart.y);
+    zoneStart.r=Math.max(4/vz, dist)/mapW;
     render();
   }
 }
 
 function onUp(){
+  if(isPanning){ isPanning=false; render(); return; }
   if(isDrawing && drawPath.length>2){
     pushUndo();
     elements.push({type:'path',points:[...drawPath],color:currentColor,arrow:currentTool==='arrow'});
   }
-  if(isSmokeDrawing && smokeCenter && smokeCenter.r>8){
+  if(isZoneDrawing && zoneStart && zoneStart.r>0.005){
     pushUndo();
-    elements.push({type:'smokezone',x:smokeCenter.x,y:smokeCenter.y,r:smokeCenter.r});
+    const mapW=mapImages[currentMap]?mapImages[currentMap].width:1024;
+    elements.push({type:zoneTool,x:zoneStart.x,y:zoneStart.y,r:zoneStart.r});
   }
-  isDrawing=false; isDragging=false; isSmokeDrawing=false; drawPath=[]; smokeCenter=null;
+  isDrawing=false; isDragging=false; isZoneDrawing=false;
+  drawPath=[]; zoneStart=null; zoneTool='';
   render();
 }
 
-/* ─────────────────────────────────────────────
-   Keyboard shortcuts
-───────────────────────────────────────────── */
-document.addEventListener('keydown', e => {
-  if((e.ctrlKey||e.metaKey) && e.key==='z'){ undo(); e.preventDefault(); }
-  if((e.key==='Delete'||e.key==='Backspace') && selectedEl && document.activeElement===document.body){
+/* ═══════════════════════════════════════════
+   KEYBOARD
+═══════════════════════════════════════════ */
+document.addEventListener('keydown', e=>{
+  if(e.code==='Space' && document.activeElement===document.body){ spaceDown=true; render(); e.preventDefault(); }
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){ undo(); e.preventDefault(); }
+  if((e.key==='Delete'||e.key==='Backspace')&&selectedEl&&document.activeElement===document.body){
     pushUndo(); elements=elements.filter(el=>el!==selectedEl);
     selectedEl=null; updateSidebar(null); render();
   }
+  if(e.key==='='||e.key==='+'){ zoomAt(W/2,H/2,1.2); e.preventDefault(); }
+  if(e.key==='-'){ zoomAt(W/2,H/2,1/1.2); e.preventDefault(); }
+  if(e.key==='0'){ fitMap(); e.preventDefault(); }
+});
+document.addEventListener('keyup', e=>{
+  if(e.code==='Space'){ spaceDown=false; render(); }
 });
 
-/* ─────────────────────────────────────────────
-   Toolbar wiring
-───────────────────────────────────────────── */
-document.querySelectorAll('[data-tool]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-tool]').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentTool = btn.dataset.tool;
-    cv.style.cursor = currentTool==='select'?'default':currentTool==='smokezone'?'cell':'crosshair';
-  });
-});
+/* ═══════════════════════════════════════════
+   UNDO
+═══════════════════════════════════════════ */
+function pushUndo(){ undoStack.push(JSON.stringify(elements)); if(undoStack.length>50) undoStack.shift(); }
+function undo(){ if(undoStack.length){ elements=JSON.parse(undoStack.pop()); selectedEl=null; updateSidebar(null); render(); } }
 
-document.querySelectorAll('.c-dot').forEach(dot => {
-  dot.addEventListener('click', () => {
-    document.querySelectorAll('.c-dot').forEach(d=>d.classList.remove('active'));
-    dot.classList.add('active');
-    currentColor = dot.dataset.color;
-  });
-});
-
-document.getElementById('map-sel').addEventListener('change', e => {
-  currentMap = e.target.value; mapLoaded=false; loadMap(currentMap);
-});
-
-document.getElementById('ct-btn').addEventListener('click',()=>{
-  document.getElementById('ct-btn').classList.add('active');
-  document.getElementById('t-btn2').classList.remove('active');
-});
-document.getElementById('t-btn2').addEventListener('click',()=>{
-  document.getElementById('t-btn2').classList.add('active');
-  document.getElementById('ct-btn').classList.remove('active');
-});
-
-document.getElementById('undo-btn').addEventListener('click', undo);
-
-document.getElementById('clear-btn').addEventListener('click', () => {
-  pushUndo();
-  elements=[]; playerCnt={ct:1,t:1}; waypointCnt=1;
-  selectedEl=null; updateSidebar(null); render();
-  showToast('Board cleared', 'success');
-});
-
-document.getElementById('export-btn').addEventListener('click', () => {
-  const link = document.createElement('a');
-  link.download = (document.getElementById('sname').value||'strat')+'.png';
-  link.href = cv.toDataURL(); link.click();
-  showToast('PNG exported', 'success');
-});
-
-/* ─────────────────────────────────────────────
-   Toast helper
-───────────────────────────────────────────── */
-let toastTimer = null;
-function showToast(msg, type=''){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'show'+(type?' '+type:'');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ t.className=''; },2500);
-}
-
-/* ─────────────────────────────────────────────
-   Board state serialisation
-───────────────────────────────────────────── */
-function getBoardState(){
-  return {
-    v: 1,
-    name:    document.getElementById('sname').value,
-    map:     currentMap,
-    notes:   document.getElementById('notes').value,
-    elements,
-    playerCnt,
-    waypointCnt,
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+function updateSidebar(el){
+  const info=document.getElementById('sel-info');
+  if(!el){ info.innerHTML='<span style="color:#2e3350">Click an element to select</span>'; return; }
+  let h='';
+  if(el.type==='player')       h=`<div class="si-row">Type: <span>${el.team.toUpperCase()} Player</span></div><div class="si-row">Label: <span>${el.label}</span></div>`;
+  else if(el.type==='waypoint')    h=`<div class="si-row">Type: <span>Waypoint</span></div><div class="si-row">Step: <span>#${el.num}</span></div>`;
+  else if(el.type==='smokezone')   h=`<div class="si-row">Type: <span>Smoke Zone</span></div>`;
+  else if(el.type==='molotovzone') h=`<div class="si-row">Type: <span>Molotov Zone</span></div>`;
+  else if(el.type==='icon')        h=`<div class="si-row">Type: <span>${el.icon.charAt(0).toUpperCase()+el.icon.slice(1)}</span></div>`;
+  else if(el.type==='path')        h=`<div class="si-row">Type: <span>${el.arrow?'Arrow':'Path'}</span></div>`;
+  else if(el.type==='text')        h=`<div class="si-row">Text: <span>${el.text.slice(0,16)}</span></div>`;
+  h+='<button class="del-btn" id="del-btn">🗑 Delete selected</button>';
+  info.innerHTML=h;
+  document.getElementById('del-btn').onclick=()=>{
+    pushUndo(); elements=elements.filter(e=>e!==selectedEl);
+    selectedEl=null; updateSidebar(null); render();
   };
 }
 
-function loadBoardState(state){
-  if(!state||state.v!==1) return false;
-  elements    = state.elements    || [];
-  playerCnt   = state.playerCnt   || {ct:1,t:1};
-  waypointCnt = state.waypointCnt || 1;
-  document.getElementById('sname').value = state.name  || '';
-  document.getElementById('notes').value = state.notes || '';
-  if(state.map && state.map !== currentMap){
-    currentMap = state.map;
-    document.getElementById('map-sel').value = currentMap;
-    loadMap(currentMap);
-  }
-  selectedEl=null; updateSidebar(null); render();
-  return true;
-}
-
-/* ─────────────────────────────────────────────
-   URL share link  (Base64-encoded JSON in hash)
-───────────────────────────────────────────── */
-function encodeState(state){
-  try {
-    const json = JSON.stringify(state);
-    // btoa needs bytes, so encode to UTF-8 first
-    return btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,(_,p)=>String.fromCharCode('0x'+p)));
-  } catch(e){ return null; }
-}
-
-function decodeState(hash){
-  try {
-    const json = decodeURIComponent(Array.from(atob(hash),(c)=>'%'+c.charCodeAt(0).toString(16).padStart(2,'0')).join(''));
-    return JSON.parse(json);
-  } catch(e){ return null; }
-}
-
-document.getElementById('share-btn').addEventListener('click', () => {
-  const state = getBoardState();
-  const encoded = encodeState(state);
-  if(!encoded){ showToast('Failed to encode board', 'error'); return; }
-  const url = location.origin + location.pathname + '#strat=' + encoded;
-  navigator.clipboard.writeText(url).then(()=>{
-    showToast('✅ Share link copied to clipboard!', 'success');
-  }).catch(()=>{
-    // Fallback: show in prompt so user can copy manually
-    prompt('Copy this link to share your strat:', url);
+/* ═══════════════════════════════════════════
+   TOOLBAR WIRING
+═══════════════════════════════════════════ */
+document.querySelectorAll('[data-tool]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-tool]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTool=btn.dataset.tool;
   });
 });
+document.querySelectorAll('.c-dot').forEach(dot=>{
+  dot.addEventListener('click',()=>{
+    document.querySelectorAll('.c-dot').forEach(d=>d.classList.remove('active'));
+    dot.classList.add('active'); currentColor=dot.dataset.color;
+  });
+});
+document.getElementById('map-sel').addEventListener('change',e=>{ currentMap=e.target.value; mapLoaded=false; loadMap(currentMap); });
+document.getElementById('ct-btn').addEventListener('click',()=>{ document.getElementById('ct-btn').classList.add('active'); document.getElementById('t-btn2').classList.remove('active'); });
+document.getElementById('t-btn2').addEventListener('click',()=>{ document.getElementById('t-btn2').classList.add('active'); document.getElementById('ct-btn').classList.remove('active'); });
+document.getElementById('undo-btn').addEventListener('click', undo);
+document.getElementById('clear-btn').addEventListener('click',()=>{
+  pushUndo(); elements=[]; playerCnt={ct:1,t:1}; waypointCnt=1;
+  selectedEl=null; updateSidebar(null); render(); showToast('Board cleared','success');
+});
+document.getElementById('export-btn').addEventListener('click',()=>{
+  const link=document.createElement('a');
+  link.download=(document.getElementById('sname').value||'strat')+'.png';
+  link.href=cv.toDataURL(); link.click(); showToast('PNG exported','success');
+});
 
-// On load: check if URL has a strat hash
-function loadFromURL(){
-  const hash = location.hash;
-  if(!hash.startsWith('#strat=')) return;
-  const encoded = hash.slice(7);
-  const state = decodeState(encoded);
-  if(state && loadBoardState(state)){
-    showToast('✅ Strat loaded from link!', 'success');
-    // Clean the URL without reloading
-    history.replaceState(null,'',location.pathname);
-  } else {
-    showToast('Could not load strat from link', 'error');
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+let toastTimer=null;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show'+(type?' '+type:'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ t.className=''; },2500);
+}
+
+/* ═══════════════════════════════════════════
+   SERIALISATION
+═══════════════════════════════════════════ */
+function getBoardState(){
+  return { v:1, name:document.getElementById('sname').value, map:currentMap,
+           notes:document.getElementById('notes').value, elements, playerCnt, waypointCnt };
+}
+function loadBoardState(state){
+  if(!state||state.v!==1) return false;
+  elements=state.elements||[]; playerCnt=state.playerCnt||{ct:1,t:1}; waypointCnt=state.waypointCnt||1;
+  document.getElementById('sname').value=state.name||'';
+  document.getElementById('notes').value=state.notes||'';
+  if(state.map&&state.map!==currentMap){
+    currentMap=state.map; document.getElementById('map-sel').value=currentMap; loadMap(currentMap);
   }
+  selectedEl=null; updateSidebar(null); render(); return true;
 }
 
-/* ─────────────────────────────────────────────
-   Strat Library  (localStorage, all maps)
-───────────────────────────────────────────── */
-const LIBRARY_KEY = 'cs2sb_library_v1';
-
-function getLibrary(){
-  try{ return JSON.parse(localStorage.getItem(LIBRARY_KEY)||'[]'); }
-  catch(e){ return []; }
+/* ═══════════════════════════════════════════
+   URL SHARE
+═══════════════════════════════════════════ */
+function encodeState(s){
+  try{ return btoa(encodeURIComponent(JSON.stringify(s)).replace(/%([0-9A-F]{2})/g,(_,p)=>String.fromCharCode('0x'+p))); }
+  catch(e){ return null; }
 }
-function saveLibrary(lib){
-  try{ localStorage.setItem(LIBRARY_KEY, JSON.stringify(lib)); }
-  catch(e){ showToast('Storage full — delete old strats', 'error'); }
+function decodeState(h){
+  try{ return JSON.parse(decodeURIComponent(Array.from(atob(h),c=>'%'+c.charCodeAt(0).toString(16).padStart(2,'0')).join(''))); }
+  catch(e){ return null; }
+}
+document.getElementById('share-btn').addEventListener('click',()=>{
+  const encoded=encodeState(getBoardState());
+  if(!encoded){ showToast('Failed to encode board','error'); return; }
+  const url=location.origin+location.pathname+'#strat='+encoded;
+  navigator.clipboard.writeText(url).then(()=>showToast('✅ Share link copied!','success'))
+    .catch(()=>prompt('Copy this link:',url));
+});
+function loadFromURL(){
+  const hash=location.hash;
+  if(!hash.startsWith('#strat=')) return;
+  const state=decodeState(hash.slice(7));
+  if(state&&loadBoardState(state)){ showToast('✅ Strat loaded from link!','success'); history.replaceState(null,'',location.pathname); }
+  else showToast('Could not load strat from link','error');
 }
 
-document.getElementById('save-btn').addEventListener('click', () => {
-  const state = getBoardState();
-  if(!state.name.trim()){ showToast('Give this strat a name first', 'error'); return; }
-  const lib = getLibrary();
-  const existing = lib.findIndex(s=>s.name===state.name && s.map===state.map);
-  state.savedAt = Date.now();
-  if(existing>=0){ lib[existing]=state; showToast('Strat updated in library', 'success'); }
-  else           { lib.push(state);      showToast('Strat saved to library', 'success'); }
+/* ═══════════════════════════════════════════
+   STRAT LIBRARY
+═══════════════════════════════════════════ */
+const LIBRARY_KEY='cs2sb_library_v1';
+function getLibrary(){ try{ return JSON.parse(localStorage.getItem(LIBRARY_KEY)||'[]'); }catch(e){ return []; } }
+function saveLibrary(lib){ try{ localStorage.setItem(LIBRARY_KEY,JSON.stringify(lib)); }catch(e){ showToast('Storage full','error'); } }
+
+document.getElementById('save-btn').addEventListener('click',()=>{
+  const state=getBoardState();
+  if(!state.name.trim()){ showToast('Give this strat a name first','error'); return; }
+  const lib=getLibrary();
+  const idx=lib.findIndex(s=>s.name===state.name&&s.map===state.map);
+  state.savedAt=Date.now();
+  if(idx>=0){ lib[idx]=state; showToast('Strat updated','success'); }
+  else       { lib.push(state); showToast('Strat saved','success'); }
   saveLibrary(lib);
 });
-
-document.getElementById('new-btn').addEventListener('click', () => {
-  pushUndo();
-  elements=[]; playerCnt={ct:1,t:1}; waypointCnt=1;
+document.getElementById('new-btn').addEventListener('click',()=>{
+  pushUndo(); elements=[]; playerCnt={ct:1,t:1}; waypointCnt=1;
   document.getElementById('sname').value='New Strategy';
   document.getElementById('notes').value='';
-  selectedEl=null; updateSidebar(null); render();
-  showToast('New board started', 'success');
+  selectedEl=null; updateSidebar(null); render(); showToast('New board started','success');
 });
 
-// Library modal
-const modalBg = document.getElementById('modal-bg');
-document.getElementById('library-btn').addEventListener('click', openLibrary);
-document.getElementById('modal-close').addEventListener('click', ()=>{ modalBg.classList.remove('open'); });
-modalBg.addEventListener('click', e=>{ if(e.target===modalBg) modalBg.classList.remove('open'); });
+const modalBg=document.getElementById('modal-bg');
+document.getElementById('library-btn').addEventListener('click',openLibrary);
+document.getElementById('modal-close').addEventListener('click',()=>modalBg.classList.remove('open'));
+modalBg.addEventListener('click',e=>{ if(e.target===modalBg) modalBg.classList.remove('open'); });
 
 function openLibrary(){
-  const lib = getLibrary();
-  const list = document.getElementById('strat-list');
-  if(lib.length===0){
-    list.innerHTML='<div id="no-strats">No strats saved yet.<br>Draw something and hit 💾 Save!</div>';
-  } else {
-    // Group by map for nicer browsing
-    const byMap = {};
+  const lib=getLibrary(), list=document.getElementById('strat-list');
+  if(lib.length===0){ list.innerHTML='<div id="no-strats">No strats saved yet.<br>Draw something and hit 💾 Save!</div>'; }
+  else {
+    const byMap={};
     lib.forEach(s=>{ (byMap[s.map]=byMap[s.map]||[]).push(s); });
     list.innerHTML='';
     for(const [mapKey,strats] of Object.entries(byMap)){
-      const mapName = document.querySelector(`#map-sel option[value="${mapKey}"]`)?.textContent||mapKey;
-      const header = document.createElement('div');
-      header.style='font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.08em;padding:10px 0 5px;border-bottom:1px solid #1e2130;margin-bottom:6px;';
-      header.textContent = mapName;
-      list.appendChild(header);
+      const mapName=document.querySelector(`#map-sel option[value="${mapKey}"]`)?.textContent||mapKey;
+      const hdr=document.createElement('div');
+      hdr.style='font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.08em;padding:10px 0 5px;border-bottom:1px solid #1e2130;margin-bottom:6px;';
+      hdr.textContent=mapName; list.appendChild(hdr);
       strats.forEach(s=>{
-        const card = document.createElement('div');
-        card.className='strat-card';
-        const saved = s.savedAt ? new Date(s.savedAt).toLocaleDateString() : '';
-        card.innerHTML=`
-          <div class="strat-card-info">
-            <div class="strat-card-name">${s.name}</div>
-            <div class="strat-card-meta">${saved}${s.notes?'  ·  '+s.notes.slice(0,40)+(s.notes.length>40?'…':''):''}</div>
-          </div>
-          <button class="strat-card-del" title="Delete">🗑</button>`;
-        card.querySelector('.strat-card-info').addEventListener('click',()=>{
-          loadBoardState(s);
-          modalBg.classList.remove('open');
-          showToast(`"${s.name}" loaded`, 'success');
-        });
-        card.querySelector('.strat-card-del').addEventListener('click', e=>{
-          e.stopPropagation();
-          if(!confirm(`Delete "${s.name}"?`)) return;
-          const updated = getLibrary().filter(x=>!(x.name===s.name&&x.map===s.map));
-          saveLibrary(updated);
-          openLibrary(); // refresh modal
-          showToast('Strat deleted');
-        });
+        const card=document.createElement('div'); card.className='strat-card';
+        const saved=s.savedAt?new Date(s.savedAt).toLocaleDateString():'';
+        card.innerHTML=`<div class="strat-card-info"><div class="strat-card-name">${s.name}</div><div class="strat-card-meta">${saved}${s.notes?'  ·  '+s.notes.slice(0,40)+(s.notes.length>40?'…':''):''}</div></div><button class="strat-card-del" title="Delete">🗑</button>`;
+        card.querySelector('.strat-card-info').addEventListener('click',()=>{ loadBoardState(s); modalBg.classList.remove('open'); showToast(`"${s.name}" loaded`,'success'); });
+        card.querySelector('.strat-card-del').addEventListener('click',ev=>{ ev.stopPropagation(); if(!confirm(`Delete "${s.name}"?`)) return; saveLibrary(getLibrary().filter(x=>!(x.name===s.name&&x.map===s.map))); openLibrary(); showToast('Strat deleted'); });
         list.appendChild(card);
       });
     }
@@ -846,9 +935,9 @@ function openLibrary(){
   modalBg.classList.add('open');
 }
 
-/* ─────────────────────────────────────────────
-   Boot
-───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════ */
 resize();
 loadMap(currentMap);
 loadFromURL();
