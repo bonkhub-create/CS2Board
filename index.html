@@ -441,8 +441,7 @@ function setStatus(m){document.getElementById('map-status').textContent=m;}
 function fitMap(){
   if(!mapImages[currentMap]){render();return;}
   const img=mapImages[currentMap];
-  const s=Math.min(W/img.width,H/img.height);
-  vz=s; vx=(W-img.width*s)/2; vy=(H-img.height*s)/2;
+  vz=1; vx=(W-img.width)/2; vy=(H-img.height)/2;
   updateZoomUI(); render();
 }
 
@@ -814,13 +813,17 @@ function updateSidebar(el){
 cv.addEventListener('mousedown',onDown);
 cv.addEventListener('mousemove',onMove);
 cv.addEventListener('mouseup',onUp);
+cv.addEventListener('auxclick',e=>e.preventDefault());
+cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('touchstart',e=>{e.preventDefault();onDown(e);},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();onMove(e);},{passive:false});
 cv.addEventListener('touchend',e=>{e.preventDefault();onUp(e);},{passive:false});
 
-function isPanMode(){return currentTool==='pan'||spaceDown;}
+let middleDown=false;
+function isPanMode(){return currentTool==='pan'||spaceDown||middleDown;}
 
 function onDown(e){
+  if(e.button===1){middleDown=true;isPanning=true;panStart=getPos(e);panOrigin={x:vx,y:vy};render();e.preventDefault();return;}
   const spos=getPos(e);
   const wpos=toWorld(spos.x,spos.y);
   if(isPanMode()){isPanning=true;panStart=spos;panOrigin={x:vx,y:vy};render();return;}
@@ -872,7 +875,8 @@ function onMove(e){
   }
 }
 
-function onUp(){
+function onUp(e){
+  if(e&&e.button===1){middleDown=false;isPanning=false;render();return;}
   if(isPanning){isPanning=false;render();return;}
   if(isDrawing&&drawPath.length>2){
     pushUndo();
