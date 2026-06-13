@@ -196,8 +196,7 @@ body{background:var(--bg0);color:var(--text1)}
 
     <div class="tp-section">
       <div class="tp-label">Tools</div>
-      <div class="tb-btn active" data-tool="select" data-tip="Select & Move Elements">🖱️</div>
-      <div class="tb-btn" data-tool="pan" style="font-size:16px" data-tip="Pan the Map (or hold Space)">✋</div>
+      <div class="tb-btn active" data-tool="pan" style="font-size:16px" data-tip="Pan the Map (or hold Space)">✋</div>
       <div class="tb-btn" data-tool="draw" data-tip="Draw Freehand Path">✏️</div>
       <div class="tb-btn" data-tool="arrow" data-tip="Draw Directional Arrow">➡️</div>
       <div class="tb-btn" data-tool="text" style="font-size:14px;font-weight:700;color:var(--text2)" data-tip="Add a Text Label">T</div>
@@ -420,7 +419,7 @@ const SMOKE_WR=144, MOLOTOV_WR=100;
 function smokeRadiusPx()  { return SMOKE_WR   / (MAP_SCALE[currentMap]||5); }
 function molotovRadiusPx(){ return MOLOTOV_WR / (MAP_SCALE[currentMap]||5); }
 
-let W=0,H=0,currentMap='de_mirage',currentTool='select',currentColor='#60aaff';
+let W=0,H=0,currentMap='de_mirage',currentTool='pan',currentColor='#60aaff';
 let elements=[],selectedEl=null,undoStack=[];
 let mapImages={},mapLoaded=false;
 let playerCnt={teammate:1,enemy:1},waypointCnt=1,currentPlayerColor='blue';
@@ -845,7 +844,17 @@ cv.addEventListener('mousedown',onDown);
 cv.addEventListener('mousemove',onMove);
 cv.addEventListener('mouseup',onUp);
 cv.addEventListener('auxclick',e=>e.preventDefault());
-cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const spos=getPos(e);
+  const hit=hitTest(spos);
+  if(hit){
+    pushUndo();
+    elements=elements.filter(el=>el!==hit);
+    if(selectedEl===hit){selectedEl=null;updateSidebar(null);}
+    render();
+  }
+});
 cv.addEventListener('touchstart',e=>{e.preventDefault();onDown(e);},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();onMove(e);},{passive:false});
 cv.addEventListener('touchend',e=>{e.preventDefault();onUp(e);},{passive:false});
