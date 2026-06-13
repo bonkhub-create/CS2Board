@@ -851,10 +851,25 @@ cv.addEventListener('touchmove',e=>{e.preventDefault();onMove(e);},{passive:fals
 cv.addEventListener('touchend',e=>{e.preventDefault();onUp(e);},{passive:false});
 
 let middleDown=false;
-function isPanMode(){return currentTool==='pan'||spaceDown||middleDown;}
+function isPanMode(){return currentTool==='pan'||spaceDown||(middleDown&&!isDragging);}
 
 function onDown(e){
-  if(e.button===1){middleDown=true;isPanning=true;panStart=getPos(e);panOrigin={x:vx,y:vy};render();e.preventDefault();return;}
+  if(e.button===1){
+    e.preventDefault();
+    middleDown=true;
+    const spos=getPos(e);
+    const wpos=toWorld(spos.x,spos.y);
+    const hit=hitTest(spos);
+    if(hit){
+      selectedEl=hit; isDragging=true;
+      if(hit.type==='path') dragOffset={x:wpos.x-hit.points[0].x,y:wpos.y-hit.points[0].y};
+      else dragOffset={x:wpos.x-hit.x,y:wpos.y-hit.y};
+      updateSidebar(hit);
+    } else {
+      isPanning=true; panStart=spos; panOrigin={x:vx,y:vy};
+    }
+    render(); return;
+  }
   const spos=getPos(e);
   const wpos=toWorld(spos.x,spos.y);
   if(isPanMode()){isPanning=true;panStart=spos;panOrigin={x:vx,y:vy};render();return;}
@@ -909,7 +924,12 @@ function onMove(e){
 }
 
 function onUp(e){
-  if(e&&e.button===1){middleDown=false;isPanning=false;render();return;}
+  if(e&&e.button===1){
+    middleDown=false;
+    if(isDragging){isDragging=false;}
+    if(isPanning){isPanning=false;}
+    render(); return;
+  }
   if(isPanning){isPanning=false;render();return;}
   if(isDrawing&&drawPath.length>2){
     pushUndo();
