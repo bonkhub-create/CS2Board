@@ -26,6 +26,17 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 
 body{background:var(--bg0);color:var(--text1)}
 
+/* ── Global tooltip ── */
+#tooltip{
+  position:fixed;z-index:9999;pointer-events:none;
+  background:#0a0c12;border:1px solid var(--border2);
+  border-radius:6px;padding:5px 10px;
+  font-size:12px;color:var(--text1);white-space:nowrap;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+  opacity:0;transition:opacity .15s;
+}
+#tooltip.show{opacity:1}
+
 /* ── App shell ── */
 #app{display:flex;height:100vh}
 
@@ -33,7 +44,7 @@ body{background:var(--bg0);color:var(--text1)}
 #toolpanel{
   width:72px;background:var(--bg1);border-right:1px solid var(--border);
   display:flex;flex-direction:column;align-items:center;
-  padding:10px 0;gap:2px;overflow-y:auto;flex-shrink:0;
+  padding:10px 0;gap:2px;overflow-y:auto;overflow-x:visible;flex-shrink:0;
 }
 .tp-section{
   width:100%;padding:6px 0 4px;display:flex;flex-direction:column;align-items:center;gap:3px;
@@ -52,14 +63,6 @@ body{background:var(--bg0);color:var(--text1)}
 .tb-btn:hover{background:var(--bg3);border-color:var(--border2);color:var(--text1)}
 .tb-btn.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
 .tb-btn svg{pointer-events:none}
-.tb-btn .tip{
-  position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
-  background:var(--bg0);border:1px solid var(--border2);border-radius:5px;
-  font-size:11px;white-space:nowrap;padding:4px 8px;
-  pointer-events:none;opacity:0;z-index:300;color:var(--text1);
-  transition:opacity .15s;
-}
-.tb-btn:hover .tip{opacity:1}
 
 /* ── Main area ── */
 #main{display:flex;flex-direction:column;flex:1;overflow:hidden}
@@ -185,6 +188,7 @@ body{background:var(--bg0);color:var(--text1)}
 </style>
 </head>
 <body>
+<div id="tooltip"></div>
 <div id="app">
 
   <!-- ── Left tool panel ── -->
@@ -192,50 +196,40 @@ body{background:var(--bg0);color:var(--text1)}
 
     <div class="tp-section">
       <div class="tp-label">Tools</div>
-      <div class="tb-btn active" data-tool="select" title="">🖱️<span class="tip">Select / Move</span></div>
-      <div class="tb-btn" data-tool="pan" style="font-size:16px">✋<span class="tip">Pan (or hold Space)</span></div>
-      <div class="tb-btn" data-tool="draw">✏️<span class="tip">Freehand path</span></div>
-      <div class="tb-btn" data-tool="arrow">➡️<span class="tip">Arrow</span></div>
-      <div class="tb-btn" data-tool="text" style="font-size:14px;font-weight:700;color:var(--text2)">T<span class="tip">Add text label</span></div>
-      <div class="tb-btn" data-tool="waypoint" style="font-size:14px;font-weight:700;color:var(--accent)">①<span class="tip">Waypoint / step</span></div>
+      <div class="tb-btn active" data-tool="select" data-tip="Select & Move Elements">🖱️</div>
+      <div class="tb-btn" data-tool="pan" style="font-size:16px" data-tip="Pan the Map (or hold Space)">✋</div>
+      <div class="tb-btn" data-tool="draw" data-tip="Draw Freehand Path">✏️</div>
+      <div class="tb-btn" data-tool="arrow" data-tip="Draw Directional Arrow">➡️</div>
+      <div class="tb-btn" data-tool="text" style="font-size:14px;font-weight:700;color:var(--text2)" data-tip="Add a Text Label">T</div>
+      <div class="tb-btn" data-tool="waypoint" style="font-size:14px;font-weight:700;color:var(--accent)" data-tip="Place Numbered Waypoint">①</div>
     </div>
 
     <div class="tp-sep"></div>
 
     <div class="tp-section">
       <div class="tp-label">Players</div>
-      <div class="tb-btn" data-tool="ct" style="font-size:22px">🔵<span class="tip">CT Player</span></div>
-      <div class="tb-btn" data-tool="t" style="font-size:22px">🟡<span class="tip">T Player</span></div>
+      <div class="tb-btn" data-tool="ct" style="font-size:22px" data-tip="Place CT Player">🔵</div>
+      <div class="tb-btn" data-tool="t" style="font-size:22px" data-tip="Place T Player">🟡</div>
     </div>
 
     <div class="tp-sep"></div>
 
     <div class="tp-section">
       <div class="tp-label">Utility</div>
-      <!-- Smoke zone -->
-      <div class="tb-btn" data-tool="smokezone" style="padding:5px">
-        <span class="tip">Smoke (1:1 scale)</span>
+      <div class="tb-btn" data-tool="smokezone" style="padding:5px" data-tip="Smoke Grenade">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect x="8.5" y="10" width="7" height="9" rx="1.5" fill="#5a7a5a" stroke="#8aaa8a" stroke-width="1.1"/><rect x="10" y="7.5" width="4" height="3" rx=".8" fill="#445a44" stroke="#6a8a6a" stroke-width="1"/><circle cx="9" cy="6" r="2" fill="none" stroke="#aaa" stroke-width="1"/><ellipse cx="12" cy="4.5" rx="2.5" ry="2" fill="rgba(180,190,200,.6)" stroke="#bbc" stroke-width="0.8"/><ellipse cx="15.5" cy="5.5" rx="1.8" ry="1.5" fill="rgba(180,190,200,.45)" stroke="#bbc" stroke-width="0.8"/><ellipse cx="9" cy="5.5" rx="1.8" ry="1.5" fill="rgba(180,190,200,.45)" stroke="#bbc" stroke-width="0.8"/></svg>
       </div>
-      <!-- Molotov zone -->
-      <div class="tb-btn" data-tool="molotovzone" style="padding:5px">
-        <span class="tip">Molotov (1:1 scale)</span>
+      <div class="tb-btn" data-tool="molotovzone" style="padding:5px" data-tip="Molotov / Incendiary">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><path d="M10 19.5C8 19.5 7 18 7 16.5C7 14.5 8.5 13 9 11.5L9 9L15 9L15 11.5C15.5 13 17 14.5 17 16.5C17 18 16 19.5 14 19.5Z" fill="#8B4513" stroke="#c06020" stroke-width="1"/><rect x="9.5" y="6" width="5" height="3.5" rx="1" fill="#6a3010" stroke="#a05020" stroke-width="1"/><rect x="10.5" y="4" width="3" height="2.5" rx=".8" fill="#555" stroke="#888" stroke-width="0.8"/><path d="M12 17C11 16 11 14.5 12 13.5C13 14.5 13 16 12 17Z" fill="#ff8800"/><path d="M12 15.5C11.5 15 11.5 14 12 13.5C12.5 14 12.5 15 12 15.5Z" fill="#ffdd00"/></svg>
       </div>
-      <!-- Flash -->
-      <div class="tb-btn" data-tool="flash" style="font-size:20px">💥<span class="tip">Flashbang</span></div>
-      <!-- HE Grenade -->
-      <div class="tb-btn" data-tool="nade" style="padding:5px">
-        <span class="tip">HE Grenade</span>
+      <div class="tb-btn" data-tool="flash" style="font-size:20px" data-tip="Flashbang">💥</div>
+      <div class="tb-btn" data-tool="nade" style="padding:5px" data-tip="HE Grenade">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><circle cx="12" cy="14.5" r="6.5" fill="#3a5a2a" stroke="#7acc55" stroke-width="1.3"/><rect x="10.5" y="4" width="3" height="5" rx="1" fill="#888"/><line x1="12" y1="4" x2="16.5" y2="2" stroke="#ccc" stroke-width="1.2" stroke-linecap="round"/><circle cx="12" cy="14.5" r="2.5" fill="#2a4a1a"/><line x1="9.5" y1="12" x2="14.5" y2="17" stroke="#7acc55" stroke-width="0.8" stroke-linecap="round"/><line x1="14.5" y1="12" x2="9.5" y2="17" stroke="#7acc55" stroke-width="0.8" stroke-linecap="round"/></svg>
       </div>
-      <!-- Bomb -->
-      <div class="tb-btn" data-tool="bomb" style="padding:5px">
-        <span class="tip">Bomb / C4</span>
+      <div class="tb-btn" data-tool="bomb" style="padding:5px" data-tip="Bomb / C4">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><ellipse cx="11" cy="14" rx="7.5" ry="7.5" fill="#2a2a2a" stroke="#aaa" stroke-width="1.4"/><rect x="10.2" y="3" width="1.6" height="5" rx=".8" fill="#aaa"/><line x1="11" y1="6.5" x2="16" y2="4" stroke="#e8c840" stroke-width="1.3" stroke-linecap="round"/><circle cx="17" cy="3.5" r="1.4" fill="#e8c840"/><circle cx="11" cy="14" r="3" fill="#555"/><circle cx="9.5" cy="12.5" r=".8" fill="#888"/></svg>
       </div>
-      <!-- AWP -->
-      <div class="tb-btn" data-tool="sniper" style="font-size:20px">🎯<span class="tip">AWP Position</span></div>
+      <div class="tb-btn" data-tool="sniper" style="font-size:20px" data-tip="AWP Position">🎯</div>
     </div>
 
   </div>
@@ -245,9 +239,9 @@ body{background:var(--bg0);color:var(--text1)}
 
     <!-- Top bar -->
     <div id="topbar">
-      <input id="sname" placeholder="Strategy name..." value="New Strategy"/>
+      <input id="sname" placeholder="Strategy name..." value="New Strategy" data-tip="Name Your Strategy"/>
       <div class="tsep"></div>
-      <select id="map-sel">
+      <select id="map-sel" data-tip="Switch Map">
         <option value="de_mirage">Mirage</option>
         <option value="de_inferno">Inferno</option>
         <option value="de_dust2">Dust 2</option>
@@ -259,22 +253,20 @@ body{background:var(--bg0);color:var(--text1)}
         <option value="de_train">Train</option>
       </select>
       <div class="tsep"></div>
-      <!-- Zoom -->
-      <button class="top-btn" id="zoom-out-btn" style="font-size:18px;padding:0 10px">−</button>
-      <span id="zoom-display">100%</span>
-      <button class="top-btn" id="zoom-in-btn" style="font-size:16px;padding:0 10px">+</button>
-      <button class="top-btn" id="zoom-reset-btn">Fit</button>
+      <button class="top-btn" id="zoom-out-btn" style="font-size:18px;padding:0 10px" data-tip="Zoom out (−)">−</button>
+      <span id="zoom-display" data-tip="Current Zoom Level">100%</span>
+      <button class="top-btn" id="zoom-in-btn" style="font-size:16px;padding:0 10px" data-tip="Zoom in (+)">+</button>
+      <button class="top-btn" id="zoom-reset-btn" data-tip="Reset Zoom to Fit Map">Fit</button>
       <div class="tsep"></div>
-      <!-- Actions -->
-      <button class="top-btn" id="undo-btn">↩ Undo</button>
-      <button class="top-btn" id="clear-btn">🗑 Clear</button>
+      <button class="top-btn" id="undo-btn" data-tip="Undo Last Action (Ctrl+Z)">↩ Undo</button>
+      <button class="top-btn" id="clear-btn" data-tip="Clear the Entire Board">🗑 Clear</button>
       <div class="tsep"></div>
-      <button class="top-btn" id="share-btn">🔗 Share</button>
-      <button class="top-btn" id="export-btn">📷 Export PNG</button>
+      <button class="top-btn" id="share-btn" data-tip="Copy Shareable Link">🔗 Share</button>
+      <button class="top-btn" id="export-btn" data-tip="Export Board as PNG">📷 Export PNG</button>
       <div class="tsep"></div>
-      <button class="top-btn" id="save-btn">💾 Save</button>
-      <button class="top-btn" id="new-btn">＋ New</button>
-      <button class="top-btn" id="library-btn">📚 Library</button>
+      <button class="top-btn" id="save-btn" data-tip="Save to Library">💾 Save</button>
+      <button class="top-btn" id="new-btn" data-tip="Start a New Board">＋ New</button>
+      <button class="top-btn" id="library-btn" data-tip="Browse Saved Strats">📚 Library</button>
     </div>
 
     <!-- Canvas + right sidebar -->
@@ -285,25 +277,25 @@ body{background:var(--bg0);color:var(--text1)}
 
         <div class="s-lbl">Player Color</div>
         <div class="color-row" id="player-color-picker">
-          <div class="pc-global active" data-pcolor="blue"   style="background:#4a9ed8;border-color:#fff"></div>
-          <div class="pc-global" data-pcolor="orange" style="background:#e05500"></div>
-          <div class="pc-global" data-pcolor="purple" style="background:#9955dd"></div>
-          <div class="pc-global" data-pcolor="green"  style="background:#33bb44"></div>
-          <div class="pc-global" data-pcolor="yellow" style="background:#ccaa00"></div>
+          <div class="pc-global active" data-pcolor="blue"   style="background:#4a9ed8;border-color:#fff" data-tip="Blue"></div>
+          <div class="pc-global" data-pcolor="orange" style="background:#e05500" data-tip="Orange"></div>
+          <div class="pc-global" data-pcolor="purple" style="background:#9955dd" data-tip="Purple"></div>
+          <div class="pc-global" data-pcolor="green"  style="background:#33bb44" data-tip="Green"></div>
+          <div class="pc-global" data-pcolor="yellow" style="background:#ccaa00" data-tip="Yellow"></div>
         </div>
 
         <div class="s-lbl">Line Color</div>
         <div class="color-row" id="color-picker">
-          <div class="c-dot active" data-color="#60aaff" style="background:#60aaff"></div>
-          <div class="c-dot" data-color="#e8c840" style="background:#e8c840"></div>
-          <div class="c-dot" data-color="#60cc60" style="background:#60cc60"></div>
-          <div class="c-dot" data-color="#e06040" style="background:#e06040"></div>
-          <div class="c-dot" data-color="#cc60cc" style="background:#cc60cc"></div>
-          <div class="c-dot" data-color="#ffffff" style="background:#fff;border-color:#444"></div>
+          <div class="c-dot active" data-color="#60aaff" style="background:#60aaff" data-tip="Blue"></div>
+          <div class="c-dot" data-color="#e8c840" style="background:#e8c840" data-tip="Yellow"></div>
+          <div class="c-dot" data-color="#60cc60" style="background:#60cc60" data-tip="Green"></div>
+          <div class="c-dot" data-color="#e06040" style="background:#e06040" data-tip="Red"></div>
+          <div class="c-dot" data-color="#cc60cc" style="background:#cc60cc" data-tip="Purple"></div>
+          <div class="c-dot" data-color="#ffffff" style="background:#fff;border-color:#444" data-tip="White"></div>
         </div>
 
         <div class="s-lbl">Notes</div>
-        <textarea id="notes" placeholder="Describe the strategy...&#10;&#10;e.g. 3 rush B, smoke van, flash over CT..."></textarea>
+        <textarea id="notes" placeholder="Describe the strategy...&#10;&#10;e.g. 3 rush B, smoke van, flash over CT..." data-tip="Notes Appear in PNG Export"></textarea>
 
         <div class="s-lbl">Selected</div>
         <div id="sel-info"><span style="color:var(--text3)">Click an element to select</span></div>
@@ -329,6 +321,53 @@ body{background:var(--bg0);color:var(--text1)}
 </div>
 
 <script>
+/* ═══════════════════════════════════════════
+   GLOBAL TOOLTIP ENGINE
+   Uses data-tip attributes — works everywhere,
+   no clipping from overflow:hidden parents.
+═══════════════════════════════════════════ */
+const ttEl = document.getElementById('tooltip');
+let ttTimer = null;
+
+function showTip(text, targetEl) {
+  clearTimeout(ttTimer);
+  const r = targetEl.getBoundingClientRect();
+  ttEl.textContent = text;
+  ttEl.classList.remove('show');
+
+  // Position: prefer below for top-bar elements, right for left-panel buttons
+  const inPanel = targetEl.closest('#toolpanel');
+  if (inPanel) {
+    // Right of the button
+    ttEl.style.left = (r.right + 10) + 'px';
+    ttEl.style.top  = (r.top + r.height / 2) + 'px';
+    ttEl.style.transform = 'translateY(-50%)';
+  } else {
+    // Below the element
+    ttEl.style.left = (r.left + r.width / 2) + 'px';
+    ttEl.style.top  = (r.bottom + 8) + 'px';
+    ttEl.style.transform = 'translateX(-50%)';
+  }
+
+  ttTimer = setTimeout(() => ttEl.classList.add('show'), 400);
+}
+
+function hideTip() {
+  clearTimeout(ttTimer);
+  ttEl.classList.remove('show');
+}
+
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-tip]');
+  if (el) showTip(el.dataset.tip, el);
+});
+document.addEventListener('mouseout', e => {
+  const el = e.target.closest('[data-tip]');
+  if (el) hideTip();
+});
+document.addEventListener('mousedown', hideTip);
+document.addEventListener('scroll', hideTip, true);
+
 /* ═══════════════════════════════════════════
    CONSTANTS & STATE
 ═══════════════════════════════════════════ */
@@ -481,15 +520,11 @@ function drawEl(el,sel){
   if(sel){ctx.shadowColor='#e8c840';ctx.shadowBlur=10;}
 
   if(el.type==='player'){
-    const s=toScreen(el.x,el.y),r=Math.max(6,11*Math.min(vz,2));
+    const s=toScreen(el.x,el.y),r=Math.max(4,8*Math.min(vz,2));
     const pc=PLAYER_COLORS[el.color]||PLAYER_COLORS.blue;
     ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2);
     ctx.fillStyle=pc.fill; ctx.fill();
-    ctx.strokeStyle=pc.stroke; ctx.lineWidth=sel?2.5:1.8; ctx.stroke();
-    ctx.fillStyle=pc.text;
-    const fs=Math.max(6,9*Math.min(vz,2));
-    ctx.font=`bold ${fs}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(el.label,s.x,s.y);
+    ctx.strokeStyle=pc.stroke; ctx.lineWidth=sel?2:1.5; ctx.stroke();
 
   } else if(el.type==='waypoint'){
     const s=toScreen(el.x,el.y),r=Math.max(7,13*Math.min(vz,2));
@@ -613,11 +648,32 @@ function drawIcon(icon,sx,sy,sel){
   const baseR=Math.max(10,16*Math.min(vz,2));
   if(icon==='bomb'){ drawBombIcon(sx,sy,baseR*0.75,sel); return; }
   if(icon==='nade'){ drawNadeIcon(sx,sy,baseR,sel); return; }
-  const EMOJI={flash:'💥',sniper:'🎯'};
+  if(icon==='sniper'){ drawSniperIcon(sx,sy,sel); return; }
+  const EMOJI={flash:'💥'};
   const fs=Math.max(10,16*Math.min(vz,2));
   ctx.font=`${fs}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText(EMOJI[icon]||'?',sx,sy);
   if(sel){ctx.strokeStyle='#e8c840';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,baseR+4,0,Math.PI*2);ctx.stroke();}
+}
+
+/* ─── AWP Position: same size circle as CT/T with crosshair ─── */
+function drawSniperIcon(sx,sy,sel){
+  const r=Math.max(4,8*Math.min(vz,2));
+  ctx.save();
+  // Outer ring
+  ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2);
+  ctx.fillStyle='#1a0a2e'; ctx.fill();
+  ctx.strokeStyle='#cc33ff'; ctx.lineWidth=sel?2:1.5; ctx.stroke();
+  // Crosshair lines
+  const lw=r*0.55;
+  ctx.strokeStyle='rgba(200,100,255,0.85)'; ctx.lineWidth=Math.max(0.8,r*0.18); ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(sx-lw,sy); ctx.lineTo(sx+lw,sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx,sy-lw); ctx.lineTo(sx,sy+lw); ctx.stroke();
+  // Centre dot
+  ctx.beginPath(); ctx.arc(sx,sy,Math.max(1,r*0.22),0,Math.PI*2);
+  ctx.fillStyle='#cc33ff'; ctx.fill();
+  if(sel){ctx.shadowColor='#e8c840';ctx.shadowBlur=10;ctx.strokeStyle='#e8c840';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,r+4,0,Math.PI*2);ctx.stroke();}
+  ctx.restore();
 }
 
 /* ─── Bomb ─── */
