@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS2 Strategy Board</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #0a0c12; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e0e0e0; overflow: hidden; }
+
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── Toolbar ── */
+#toolbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 10px; background: #161923;
+  border-bottom: 1px solid #23263a; flex-wrap: wrap; flex-shrink: 0;
+}
+.sep { width: 1px; height: 26px; background: #23263a; margin: 0 3px; flex-shrink: 0; }
+.tb-btn {
+  width: 34px; height: 34px; border-radius: 6px;
+  border: 1.5px solid transparent; background: #23263a;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; position: relative; user-select: none; color: #ccc; flex-shrink: 0;
+  transition: background 0.1s, border-color 0.1s;
+}
+.tb-btn:hover { background: #2b2f45; border-color: #343854; }
+.tb-btn.active { border-color: #e8c840; background: #27240d; }
+.tb-btn .tip {
+  position: absolute; top: 38px; left: 50%; transform: translateX(-50%);
+  background: #0d0f1a; border: 1px solid #23263a; border-radius: 4px;
+  font-size: 10px; white-space: nowrap; padding: 2px 6px;
+  pointer-events: none; opacity: 0; z-index: 200; color: #aaa;
+  transition: opacity 0.15s;
+}
+.tb-btn:hover .tip { opacity: 1; }
+#map-sel {
+  background: #23263a; color: #e0e0e0; border: 1.5px solid #343854;
+  border-radius: 6px; padding: 4px 7px; font-size: 12px; cursor: pointer; height: 34px;
+}
+#sname {
+  background: #1e2130; color: #e8c840; border: 1px solid #2e2a00;
+  border-radius: 6px; padding: 5px 8px; font-size: 12px; font-weight: 600;
+  width: 140px; height: 34px;
+}
+
+/* ── Board area ── */
+#board { display: flex; flex: 1; overflow: hidden; }
+#cvwrap { flex: 1; position: relative; overflow: hidden; }
+#cv { position: absolute; top: 0; left: 0; cursor: crosshair; display: block; }
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 180px; background: #161923; border-left: 1px solid #23263a;
+  padding: 9px 8px; display: flex; flex-direction: column; gap: 7px;
+  overflow-y: auto; flex-shrink: 0;
+}
+.s-lbl {
+  font-size: 10px; font-weight: 600; color: #555;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding-bottom: 4px; border-bottom: 1px solid #1e2130;
+}
+#notes {
+  width: 100%; background: #1e2130; color: #d0d0d0;
+  border: 1px solid #23263a; border-radius: 6px;
+  padding: 5px 7px; font-size: 11px; resize: none;
+  font-family: inherit; min-height: 72px;
+}
+#notes::placeholder { color: #2e3350; }
+#sel-info { font-size: 11px; color: #2e3350; min-height: 28px; }
+.si-row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; color: #888; }
+.si-row span { color: #ccc; }
+.del-btn {
+  width: 100%; background: #2a1010; color: #e07070;
+  border: 1px solid #4a1e1e; border-radius: 6px;
+  padding: 5px; font-size: 11px; cursor: pointer; margin-top: 2px;
+}
+.del-btn:hover { background: #3a1515; }
+.team-row { display: flex; gap: 4px; }
+.t-btn { flex: 1; padding: 5px 2px; border-radius: 5px; border: 1.5px solid transparent; font-size: 11px; cursor: pointer; font-weight: 600; }
+.t-btn.ct { background: #0d1f35; color: #5ba3e0; border-color: #142840; }
+.t-btn.t  { background: #251800; color: #e0a030; border-color: #402800; }
+.t-btn.ct.active { background: #163355; border-color: #4a90d0; }
+.t-btn.t.active  { background: #3d2600; border-color: #d09020; }
+.color-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.c-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; transition: transform 0.1s; }
+.c-dot:hover { transform: scale(1.15); }
+.c-dot.active { border-color: #fff; }
+.act-row { display: flex; gap: 4px; }
+.a-btn {
+  flex: 1; background: #1e2130; border: 1px solid #23263a;
+  color: #aaa; border-radius: 6px; padding: 5px 3px; font-size: 10px; cursor: pointer;
+}
+.a-btn:hover { background: #272b3d; color: #e0e0e0; }
+.a-btn.wide { flex: none; width: 100%; font-size: 11px; padding: 6px; }
+#map-status { font-size: 10px; color: #3a3f5a; text-align: center; }
+
+/* Timer */
+#timer-display { background: #1e2130; border: 1px solid #23263a; border-radius: 6px; padding: 6px 8px; text-align: center; }
+#timer-val { font-size: 24px; font-weight: 700; color: #e8c840; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+#timer-phase { font-size: 10px; color: #888; margin-top: 1px; }
+.timer-row { display: flex; gap: 4px; }
+.timer-btn { flex: 1; background: #1e2130; border: 1px solid #23263a; color: #aaa; border-radius: 5px; padding: 4px 2px; font-size: 10px; cursor: pointer; }
+.timer-btn:hover { background: #272b3d; color: #e0e0e0; }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+  background: #1e2130; border: 1px solid #343854; border-radius: 8px;
+  padding: 10px 20px; font-size: 13px; color: #e0e0e0;
+  transition: transform 0.25s ease, opacity 0.25s ease; opacity: 0; z-index: 1000;
+  white-space: nowrap;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+#toast.success { border-color: #2a5a2a; color: #80e080; }
+#toast.error { border-color: #5a2a2a; color: #e08080; }
+
+/* Strat library modal */
+#modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 500; align-items: center; justify-content: center;
+}
+#modal-bg.open { display: flex; }
+#modal {
+  background: #161923; border: 1px solid #23263a; border-radius: 10px;
+  width: 480px; max-width: 96vw; max-height: 80vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid #23263a;
+}
+#modal-header h2 { font-size: 15px; font-weight: 600; color: #e0e0e0; }
+#modal-close { background: none; border: none; color: #666; cursor: pointer; font-size: 20px; line-height: 1; }
+#modal-close:hover { color: #e0e0e0; }
+#modal-body { padding: 12px 16px; overflow-y: auto; flex: 1; }
+#strat-list { display: flex; flex-direction: column; gap: 8px; }
+.strat-card {
+  background: #1e2130; border: 1px solid #23263a; border-radius: 7px;
+  padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.strat-card:hover { background: #252940; border-color: #343854; }
+.strat-card-info { flex: 1; }
+.strat-card-name { font-size: 13px; font-weight: 600; color: #e0e0e0; }
+.strat-card-meta { font-size: 10px; color: #555; margin-top: 2px; }
+.strat-card-del { background: none; border: none; color: #4a2020; cursor: pointer; font-size: 16px; padding: 4px; }
+.strat-card-del:hover { color: #e07070; }
+#no-strats { color: #3a3f5a; font-size: 12px; text-align: center; padding: 24px 0; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="toolbar">
+    <input id="sname" placeholder="Strategy name..." value="New Strategy" />
+    <div class="sep"></div>
+    <select id="map-sel">
+      <option value="de_mirage">Mirage</option>
+      <option value="de_inferno">Inferno</option>
+      <option value="de_dust2">Dust 2</option>
+      <option value="de_nuke">Nuke</option>
+      <option value="de_overpass">Overpass</option>
+      <option value="de_anubis">Anubis</option>
+      <option value="de_ancient">Ancient</option>
+      <option value="de_vertigo">Vertigo</option>
+      <option value="de_train">Train</option>
+    </select>
+    <div class="sep"></div>
+    <!-- Drawing tools -->
+    <div style="display:flex;gap:3px">
+      <div class="tb-btn active" data-tool="select">🖱️<span class="tip">Select / Move</span></div>
+      <div class="tb-btn" data-tool="draw">✏️<span class="tip">Freehand path</span></div>
+      <div class="tb-btn" data-tool="arrow">➡️<span class="tip">Arrow</span></div>
+      <div class="tb-btn" data-tool="text" style="font-size:13px;font-weight:700">T<span class="tip">Add label</span></div>
+    </div>
+    <div class="sep"></div>
+    <!-- Entity tools -->
+    <div style="display:flex;gap:3px">
+      <div class="tb-btn" data-tool="ct">🔵<span class="tip">CT Player</span></div>
+      <div class="tb-btn" data-tool="t">🟡<span class="tip">T Player</span></div>
+      <div class="tb-btn" data-tool="bomb">💣<span class="tip">Bomb / C4</span></div>
+      <div class="tb-btn" data-tool="smoke">🌫️<span class="tip">Smoke grenade</span></div>
+      <div class="tb-btn" data-tool="flash">💥<span class="tip">Flashbang</span></div>
+      <div class="tb-btn" data-tool="molotov">🔥<span class="tip">Molotov / Inc</span></div>
+      <div class="tb-btn" data-tool="nade">💚<span class="tip">HE Grenade</span></div>
+      <div class="tb-btn" data-tool="sniper">🎯<span class="tip">AWP Position</span></div>
+    </div>
+    <div class="sep"></div>
+    <!-- Special tools -->
+    <div style="display:flex;gap:3px">
+      <div class="tb-btn" data-tool="waypoint" style="font-size:13px;font-weight:700;color:#e8c840">①<span class="tip">Waypoint / Step</span></div>
+      <div class="tb-btn" data-tool="smokezone">⭕<span class="tip">Smoke landing zone</span></div>
+    </div>
+    <div class="sep"></div>
+    <!-- Actions -->
+    <div style="display:flex;gap:3px">
+      <div class="tb-btn" id="undo-btn">↩️<span class="tip">Undo (Ctrl+Z)</span></div>
+      <div class="tb-btn" id="clear-btn">🗑️<span class="tip">Clear board</span></div>
+      <div class="tb-btn" id="share-btn" style="font-size:13px">🔗<span class="tip">Copy share link</span></div>
+      <div class="tb-btn" id="export-btn">📷<span class="tip">Export PNG</span></div>
+    </div>
+  </div>
+
+  <div id="board">
+    <div id="cvwrap"><canvas id="cv"></canvas></div>
+
+    <div id="sidebar">
+      <div class="s-lbl">Team</div>
+      <div class="team-row">
+        <button class="t-btn ct active" id="ct-btn">◆ CT</button>
+        <button class="t-btn t" id="t-btn2">◆ T</button>
+      </div>
+
+      <div class="s-lbl">Line Color</div>
+      <div class="color-row" id="color-picker">
+        <div class="c-dot active" data-color="#60aaff" style="background:#60aaff"></div>
+        <div class="c-dot" data-color="#e8c840" style="background:#e8c840"></div>
+        <div class="c-dot" data-color="#60cc60" style="background:#60cc60"></div>
+        <div class="c-dot" data-color="#e06040" style="background:#e06040"></div>
+        <div class="c-dot" data-color="#cc60cc" style="background:#cc60cc"></div>
+        <div class="c-dot" data-color="#ffffff" style="background:#fff;border-color:#555"></div>
+      </div>
+
+      <div class="s-lbl">Round Timer</div>
+      <div id="timer-display">
+        <div id="timer-val">1:55</div>
+        <div id="timer-phase">Buy Phase</div>
+      </div>
+      <div class="timer-row">
+        <button class="timer-btn" id="timer-start">▶ Start</button>
+        <button class="timer-btn" id="timer-pause">⏸ Pause</button>
+        <button class="timer-btn" id="timer-reset">↺ Reset</button>
+      </div>
+
+      <div class="s-lbl">Notes</div>
+      <textarea id="notes" placeholder="Describe the strategy...&#10;&#10;e.g. 3 rush B, smoke van, flash over..."></textarea>
+
+      <div class="s-lbl">Selected</div>
+      <div id="sel-info">Click an element to select</div>
+
+      <div style="flex:1"></div>
+
+      <div class="s-lbl">Strat Library</div>
+      <div class="act-row">
+        <button class="a-btn" id="save-btn">💾 Save</button>
+        <button class="a-btn" id="new-btn">＋ New</button>
+      </div>
+      <button class="a-btn wide" id="library-btn">📚 Open Library</button>
+      <div id="map-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Library modal -->
+<div id="modal-bg">
+  <div id="modal">
+    <div id="modal-header">
+      <h2>📚 Strat Library</h2>
+      <button id="modal-close">×</button>
+    </div>
+    <div id="modal-body">
+      <div id="strat-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   State
+───────────────────────────────────────────── */
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const wrap = document.getElementById('cvwrap');
+
+const BASE = 'https://cdn.jsdelivr.net/gh/MurkyYT/cs2-map-icons@main/images/radars/';
+const MAP_URLS = {
+  de_mirage:   BASE+'de_mirage_radar_psd.png',
+  de_inferno:  BASE+'de_inferno_radar_psd.png',
+  de_dust2:    BASE+'de_dust2_radar_psd.png',
+  de_nuke:     BASE+'de_nuke_radar_psd.png',
+  de_overpass: BASE+'de_overpass_radar_psd.png',
+  de_anubis:   BASE+'de_anubis_radar_psd.png',
+  de_ancient:  BASE+'de_ancient_radar_psd.png',
+  de_vertigo:  BASE+'de_vertigo_radar_psd.png',
+  de_train:    BASE+'de_train_radar_psd.png',
+};
+
+let W = 0, H = 0;
+let currentMap  = 'de_mirage';
+let currentTool = 'select';
+let currentColor = '#60aaff';
+let elements = [], selectedEl = null, undoStack = [];
+let isDragging = false, dragOffset = {x:0,y:0};
+let isDrawing = false, drawPath = [];
+let isSmokeDrawing = false, smokeCenter = null;
+let playerCnt = {ct:1, t:1}, waypointCnt = 1;
+let mapImages = {}, mapLoaded = false;
+
+// Timer
+let timerSec = 115, timerRunning = false, timerInterval = null;
+const PHASES = [
+  {t:115, label:'Buy Phase'},
+  {t:105, label:'Live Round'},
+  {t:40,  label:'Late Round'},
+  {t:15,  label:'Overtime!'},
+  {t:0,   label:'Round Over'},
+];
+function getPhase(s){ for(let i=0;i<PHASES.length-1;i++) if(s>=PHASES[i+1].t) return PHASES[i].label; return 'Round Over'; }
+function fmtTime(s){ const m=Math.floor(s/60),sc=s%60; return m+':'+(sc<10?'0':'')+sc; }
+function updateTimerUI(){
+  document.getElementById('timer-val').textContent  = fmtTime(timerSec);
+  document.getElementById('timer-phase').textContent = getPhase(timerSec);
+  document.getElementById('timer-val').style.color  = timerSec>40?'#e8c840':timerSec>15?'#e08030':'#e03030';
+}
+document.getElementById('timer-start').onclick = () => {
+  if(timerRunning||timerSec<=0) return;
+  timerRunning = true;
+  timerInterval = setInterval(()=>{ if(timerSec>0){timerSec--;updateTimerUI();}else{clearInterval(timerInterval);timerRunning=false;} },1000);
+};
+document.getElementById('timer-pause').onclick = () => { timerRunning=false; clearInterval(timerInterval); };
+document.getElementById('timer-reset').onclick = () => { timerRunning=false; clearInterval(timerInterval); timerSec=115; updateTimerUI(); };
+updateTimerUI();
+
+/* ─────────────────────────────────────────────
+   Canvas sizing
+───────────────────────────────────────────── */
+function resize(){
+  W = wrap.offsetWidth; H = wrap.offsetHeight;
+  cv.width = W; cv.height = H;
+  render();
+}
+window.addEventListener('resize', resize);
+
+/* ─────────────────────────────────────────────
+   Map loading
+───────────────────────────────────────────── */
+function loadMap(key){
+  if(mapImages[key]){ mapLoaded=true; render(); setStatus(''); return; }
+  mapLoaded = false; setStatus('Loading map radar...');
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload  = () => { mapImages[key]=img; mapLoaded=true; setStatus(''); render(); };
+  img.onerror = () => { setStatus('Map failed — check network'); render(); };
+  img.src = MAP_URLS[key];
+}
+function setStatus(m){ document.getElementById('map-status').textContent = m; }
+
+/* ─────────────────────────────────────────────
+   Render
+───────────────────────────────────────────── */
+const ICONS = { ct:'🔵', t:'🟡', bomb:'💣', smoke:'🌫️', flash:'💥', molotov:'🔥', nade:'💚', sniper:'🎯' };
+const ICON_SZ = { ct:18, t:18, bomb:16, smoke:22, flash:16, molotov:20, nade:16, sniper:16 };
+
+function render(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0a0c12'; ctx.fillRect(0,0,W,H);
+
+  if(mapLoaded && mapImages[currentMap]){
+    const img = mapImages[currentMap];
+    const scale = Math.min(W/img.width, H/img.height);
+    const sw = img.width*scale, sh = img.height*scale;
+    const ox = (W-sw)/2, oy = (H-sh)/2;
+    ctx.drawImage(img, ox, oy, sw, sh);
+  } else {
+    ctx.fillStyle = '#1a1e2a'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#444'; ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Loading map radar...', W/2, H/2);
+  }
+
+  for(const el of elements) drawEl(el, el===selectedEl);
+
+  // Smoke zone preview
+  if(isSmokeDrawing && smokeCenter){
+    ctx.save(); ctx.globalAlpha=0.35;
+    ctx.beginPath(); ctx.arc(smokeCenter.x, smokeCenter.y, smokeCenter.r||2, 0, Math.PI*2);
+    ctx.fillStyle='#88aacc'; ctx.fill();
+    ctx.strokeStyle='#aaccee'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+  }
+
+  // Path preview
+  if(isDrawing && drawPath.length>1){
+    ctx.strokeStyle=currentColor; ctx.lineWidth=2.5;
+    ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(drawPath[0].x,drawPath[0].y);
+    for(let i=1;i<drawPath.length;i++) ctx.lineTo(drawPath[i].x,drawPath[i].y);
+    ctx.stroke(); ctx.setLineDash([]);
+    if(currentTool==='arrow'&&drawPath.length>=2) arrowHead(drawPath[drawPath.length-2],drawPath[drawPath.length-1],currentColor);
+  }
+}
+
+function arrowHead(from, to, color, size=13){
+  const a = Math.atan2(to.y-from.y, to.x-from.x);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(to.x, to.y);
+  ctx.lineTo(to.x - size*Math.cos(a-0.4), to.y - size*Math.sin(a-0.4));
+  ctx.lineTo(to.x - size*Math.cos(a+0.4), to.y - size*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function drawEl(el, sel){
+  ctx.save();
+  if(sel){ ctx.shadowColor='#e8c840'; ctx.shadowBlur=10; }
+
+  if(el.type==='player'){
+    ctx.beginPath(); ctx.arc(el.x,el.y,15,0,Math.PI*2);
+    ctx.fillStyle = el.team==='ct'?'#0e2f50':'#4a2e00'; ctx.fill();
+    ctx.strokeStyle = el.team==='ct'?'#4a9ed8':'#d49020';
+    ctx.lineWidth = sel?2.5:1.8; ctx.stroke();
+    ctx.fillStyle = el.team==='ct'?'#80c8ff':'#ffcc55';
+    ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(el.label, el.x, el.y);
+
+  } else if(el.type==='waypoint'){
+    ctx.beginPath(); ctx.arc(el.x,el.y,13,0,Math.PI*2);
+    ctx.fillStyle='#1a1400'; ctx.fill();
+    ctx.strokeStyle='#e8c840'; ctx.lineWidth=sel?2.5:2; ctx.stroke();
+    ctx.fillStyle='#e8c840';
+    ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(el.num, el.x, el.y);
+    if(sel){ ctx.strokeStyle='rgba(232,200,64,0.3)'; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(el.x,el.y,18,0,Math.PI*2); ctx.stroke(); }
+
+  } else if(el.type==='smokezone'){
+    ctx.globalAlpha=0.28;
+    ctx.beginPath(); ctx.arc(el.x,el.y,el.r,0,Math.PI*2);
+    ctx.fillStyle='#88aacc'; ctx.fill();
+    ctx.globalAlpha=0.7;
+    ctx.strokeStyle='#aaccee'; ctx.lineWidth=sel?2:1.5; ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.font='11px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🌫️', el.x, el.y);
+    if(sel){ ctx.strokeStyle='rgba(232,200,64,0.5)'; ctx.lineWidth=2; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.arc(el.x,el.y,el.r+3,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); }
+
+  } else if(el.type==='icon'){
+    if(el.icon==='smoke'){
+      ctx.globalAlpha=0.65;
+      ctx.beginPath(); ctx.arc(el.x,el.y,18,0,Math.PI*2);
+      ctx.fillStyle='#7a8fa0'; ctx.fill();
+      ctx.strokeStyle='#aabbcc'; ctx.lineWidth=1; ctx.stroke();
+      ctx.globalAlpha=1;
+    } else if(el.icon==='molotov'){
+      ctx.globalAlpha=0.55;
+      ctx.beginPath(); ctx.arc(el.x,el.y,17,0,Math.PI*2);
+      ctx.fillStyle='#801000'; ctx.fill();
+      ctx.globalAlpha=1;
+    }
+    ctx.font=ICON_SZ[el.icon]+'px serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(ICONS[el.icon], el.x, el.y);
+    if(sel){ ctx.strokeStyle='#e8c840'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(el.x,el.y,21,0,Math.PI*2); ctx.stroke(); }
+
+  } else if(el.type==='path'){
+    if(el.points.length<2){ ctx.restore(); return; }
+    ctx.strokeStyle = el.color||currentColor;
+    ctx.lineWidth = sel?3:2.2; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(el.points[0].x,el.points[0].y);
+    for(let i=1;i<el.points.length;i++) ctx.lineTo(el.points[i].x,el.points[i].y);
+    ctx.stroke();
+    if(el.arrow&&el.points.length>=2) arrowHead(el.points[el.points.length-2],el.points[el.points.length-1],el.color||currentColor);
+    if(sel){
+      ctx.strokeStyle='rgba(232,200,64,0.2)'; ctx.lineWidth=8;
+      ctx.beginPath(); ctx.moveTo(el.points[0].x,el.points[0].y);
+      for(let i=1;i<el.points.length;i++) ctx.lineTo(el.points[i].x,el.points[i].y);
+      ctx.stroke();
+    }
+  } else if(el.type==='text'){
+    ctx.font='500 13px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='top';
+    const tw = ctx.measureText(el.text).width;
+    ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(el.x-2,el.y-2,tw+8,19);
+    ctx.fillStyle='#fff'; ctx.fillText(el.text, el.x+2, el.y+1);
+    if(sel){ ctx.strokeStyle='#e8c840'; ctx.lineWidth=1; ctx.strokeRect(el.x-3,el.y-3,tw+10,21); }
+  }
+  ctx.restore();
+}
+
+/* ─────────────────────────────────────────────
+   Hit testing
+───────────────────────────────────────────── */
+function getPos(e){
+  const r = cv.getBoundingClientRect();
+  const cl = e.touches ? e.touches[0] : e;
+  return { x: cl.clientX - r.left, y: cl.clientY - r.top };
+}
+
+function distToSeg(p,a,b){
+  const dx=b.x-a.x, dy=b.y-a.y, len2=dx*dx+dy*dy;
+  const t = len2 ? Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len2)) : 0;
+  return Math.sqrt((p.x-a.x-t*dx)**2+(p.y-a.y-t*dy)**2);
+}
+
+function hitTest(pos){
+  for(let i=elements.length-1; i>=0; i--){
+    const el=elements[i];
+    if(el.type==='player'||el.type==='icon'||el.type==='waypoint'){
+      if(Math.hypot(pos.x-el.x,pos.y-el.y)<22) return el;
+    } else if(el.type==='smokezone'){
+      if(Math.hypot(pos.x-el.x,pos.y-el.y)<el.r+5) return el;
+    } else if(el.type==='text'){
+      ctx.font='500 13px sans-serif';
+      const tw=ctx.measureText(el.text).width;
+      if(pos.x>=el.x-3&&pos.x<=el.x+tw+7&&pos.y>=el.y-3&&pos.y<=el.y+22) return el;
+    } else if(el.type==='path'){
+      for(let j=0;j<el.points.length-1;j++)
+        if(distToSeg(pos,el.points[j],el.points[j+1])<10) return el;
+    }
+  }
+  return null;
+}
+
+/* ─────────────────────────────────────────────
+   Undo
+───────────────────────────────────────────── */
+function pushUndo(){ undoStack.push(JSON.stringify(elements)); if(undoStack.length>50) undoStack.shift(); }
+function undo(){ if(undoStack.length){ elements=JSON.parse(undoStack.pop()); selectedEl=null; updateSidebar(null); render(); } }
+
+/* ─────────────────────────────────────────────
+   Sidebar: selected element info
+───────────────────────────────────────────── */
+function updateSidebar(el){
+  const info = document.getElementById('sel-info');
+  if(!el){ info.innerHTML='<span style="color:#2e3350">Click an element to select</span>'; return; }
+  let h='';
+  if(el.type==='player')    h=`<div class="si-row">Type: <span>${el.team.toUpperCase()} Player</span></div><div class="si-row">Label: <span>${el.label}</span></div>`;
+  else if(el.type==='waypoint')   h=`<div class="si-row">Type: <span>Waypoint</span></div><div class="si-row">Step: <span>#${el.num}</span></div>`;
+  else if(el.type==='smokezone')  h=`<div class="si-row">Type: <span>Smoke Zone</span></div><div class="si-row">Radius: <span>${Math.round(el.r)}px</span></div>`;
+  else if(el.type==='icon')  h=`<div class="si-row">Type: <span>${el.icon.charAt(0).toUpperCase()+el.icon.slice(1)}</span></div>`;
+  else if(el.type==='path')  h=`<div class="si-row">Type: <span>${el.arrow?'Arrow':'Path'}</span></div>`;
+  else if(el.type==='text')  h=`<div class="si-row">Text: <span>${el.text.slice(0,16)}</span></div>`;
+  h += '<button class="del-btn" id="del-btn">🗑 Delete selected</button>';
+  info.innerHTML = h;
+  document.getElementById('del-btn').onclick = () => {
+    pushUndo(); elements=elements.filter(e=>e!==selectedEl);
+    selectedEl=null; updateSidebar(null); render();
+  };
+}
+
+/* ─────────────────────────────────────────────
+   Mouse / Touch events
+───────────────────────────────────────────── */
+cv.addEventListener('mousedown', onDown);
+cv.addEventListener('mousemove', onMove);
+cv.addEventListener('mouseup',   onUp);
+cv.addEventListener('touchstart', e=>{ e.preventDefault(); onDown(e); }, {passive:false});
+cv.addEventListener('touchmove',  e=>{ e.preventDefault(); onMove(e); }, {passive:false});
+cv.addEventListener('touchend',   e=>{ e.preventDefault(); onUp(e);   }, {passive:false});
+
+function onDown(e){
+  const pos = getPos(e);
+  if(currentTool==='select'){
+    selectedEl = hitTest(pos);
+    if(selectedEl){
+      isDragging = true;
+      if(selectedEl.type==='path') dragOffset={x:pos.x-selectedEl.points[0].x,y:pos.y-selectedEl.points[0].y};
+      else dragOffset={x:pos.x-selectedEl.x,y:pos.y-selectedEl.y};
+    }
+    updateSidebar(selectedEl); render();
+  } else if(currentTool==='draw'||currentTool==='arrow'){
+    isDrawing=true; drawPath=[pos];
+  } else if(currentTool==='smokezone'){
+    isSmokeDrawing=true; smokeCenter={x:pos.x,y:pos.y,r:2};
+  } else if(currentTool==='text'){
+    const txt = prompt('Label text:');
+    if(txt&&txt.trim()){ pushUndo(); elements.push({type:'text',x:pos.x,y:pos.y,text:txt.trim()}); render(); }
+  } else if(currentTool==='waypoint'){
+    pushUndo(); elements.push({type:'waypoint',x:pos.x,y:pos.y,num:waypointCnt++}); render();
+  } else {
+    pushUndo();
+    if(currentTool==='ct'||currentTool==='t'){
+      const t=currentTool;
+      elements.push({type:'player',x:pos.x,y:pos.y,team:t,label:t.toUpperCase()+(playerCnt[t]++)});
+    } else {
+      elements.push({type:'icon',x:pos.x,y:pos.y,icon:currentTool});
+    }
+    render();
+  }
+}
+
+function onMove(e){
+  const pos = getPos(e);
+  if(isDragging && selectedEl){
+    if(selectedEl.type==='path'){
+      const bx=selectedEl.points[0].x, by=selectedEl.points[0].y;
+      const dx=pos.x-dragOffset.x-bx, dy=pos.y-dragOffset.y-by;
+      selectedEl.points=selectedEl.points.map(p=>({x:p.x+dx,y:p.y+dy}));
+    } else { selectedEl.x=pos.x-dragOffset.x; selectedEl.y=pos.y-dragOffset.y; }
+    render();
+  } else if(isDrawing){
+    const last=drawPath[drawPath.length-1];
+    if((pos.x-last.x)**2+(pos.y-last.y)**2>20){ drawPath.push(pos); render(); }
+  } else if(isSmokeDrawing && smokeCenter){
+    smokeCenter.r = Math.max(8, Math.hypot(pos.x-smokeCenter.x, pos.y-smokeCenter.y));
+    render();
+  }
+}
+
+function onUp(){
+  if(isDrawing && drawPath.length>2){
+    pushUndo();
+    elements.push({type:'path',points:[...drawPath],color:currentColor,arrow:currentTool==='arrow'});
+  }
+  if(isSmokeDrawing && smokeCenter && smokeCenter.r>8){
+    pushUndo();
+    elements.push({type:'smokezone',x:smokeCenter.x,y:smokeCenter.y,r:smokeCenter.r});
+  }
+  isDrawing=false; isDragging=false; isSmokeDrawing=false; drawPath=[]; smokeCenter=null;
+  render();
+}
+
+/* ─────────────────────────────────────────────
+   Keyboard shortcuts
+───────────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if((e.ctrlKey||e.metaKey) && e.key==='z'){ undo(); e.preventDefault(); }
+  if((e.key==='Delete'||e.key==='Backspace') && selectedEl && document.activeElement===document.body){
+    pushUndo(); elements=elements.filter(el=>el!==selectedEl);
+    selectedEl=null; updateSidebar(null); render();
+  }
+});
+
+/* ─────────────────────────────────────────────
+   Toolbar wiring
+───────────────────────────────────────────── */
+document.querySelectorAll('[data-tool]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-tool]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTool = btn.dataset.tool;
+    cv.style.cursor = currentTool==='select'?'default':currentTool==='smokezone'?'cell':'crosshair';
+  });
+});
+
+document.querySelectorAll('.c-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    document.querySelectorAll('.c-dot').forEach(d=>d.classList.remove('active'));
+    dot.classList.add('active');
+    currentColor = dot.dataset.color;
+  });
+});
+
+document.getElementById('map-sel').addEventListener('change', e => {
+  currentMap = e.target.value; mapLoaded=false; loadMap(currentMap);
+});
+
+document.getElementById('ct-btn').addEventListener('click',()=>{
+  document.getElementById('ct-btn').classList.add('active');
+  document.getElementById('t-btn2').classList.remove('active');
+});
+document.getElementById('t-btn2').addEventListener('click',()=>{
+  document.getElementById('t-btn2').classList.add('active');
+  document.getElementById('ct-btn').classList.remove('active');
+});
+
+document.getElementById('undo-btn').addEventListener('click', undo);
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  pushUndo();
+  elements=[]; playerCnt={ct:1,t:1}; waypointCnt=1;
+  selectedEl=null; updateSidebar(null); render();
+  showToast('Board cleared', 'success');
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = (document.getElementById('sname').value||'strat')+'.png';
+  link.href = cv.toDataURL(); link.click();
+  showToast('PNG exported', 'success');
+});
+
+/* ─────────────────────────────────────────────
+   Toast helper
+───────────────────────────────────────────── */
+let toastTimer = null;
+function showToast(msg, type=''){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show'+(type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.className=''; },2500);
+}
+
+/* ─────────────────────────────────────────────
+   Board state serialisation
+───────────────────────────────────────────── */
+function getBoardState(){
+  return {
+    v: 1,
+    name:    document.getElementById('sname').value,
+    map:     currentMap,
+    notes:   document.getElementById('notes').value,
+    elements,
+    playerCnt,
+    waypointCnt,
+  };
+}
+
+function loadBoardState(state){
+  if(!state||state.v!==1) return false;
+  elements    = state.elements    || [];
+  playerCnt   = state.playerCnt   || {ct:1,t:1};
+  waypointCnt = state.waypointCnt || 1;
+  document.getElementById('sname').value = state.name  || '';
+  document.getElementById('notes').value = state.notes || '';
+  if(state.map && state.map !== currentMap){
+    currentMap = state.map;
+    document.getElementById('map-sel').value = currentMap;
+    loadMap(currentMap);
+  }
+  selectedEl=null; updateSidebar(null); render();
+  return true;
+}
+
+/* ─────────────────────────────────────────────
+   URL share link  (Base64-encoded JSON in hash)
+───────────────────────────────────────────── */
+function encodeState(state){
+  try {
+    const json = JSON.stringify(state);
+    // btoa needs bytes, so encode to UTF-8 first
+    return btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,(_,p)=>String.fromCharCode('0x'+p)));
+  } catch(e){ return null; }
+}
+
+function decodeState(hash){
+  try {
+    const json = decodeURIComponent(Array.from(atob(hash),(c)=>'%'+c.charCodeAt(0).toString(16).padStart(2,'0')).join(''));
+    return JSON.parse(json);
+  } catch(e){ return null; }
+}
+
+document.getElementById('share-btn').addEventListener('click', () => {
+  const state = getBoardState();
+  const encoded = encodeState(state);
+  if(!encoded){ showToast('Failed to encode board', 'error'); return; }
+  const url = location.origin + location.pathname + '#strat=' + encoded;
+  navigator.clipboard.writeText(url).then(()=>{
+    showToast('✅ Share link copied to clipboard!', 'success');
+  }).catch(()=>{
+    // Fallback: show in prompt so user can copy manually
+    prompt('Copy this link to share your strat:', url);
+  });
+});
+
+// On load: check if URL has a strat hash
+function loadFromURL(){
+  const hash = location.hash;
+  if(!hash.startsWith('#strat=')) return;
+  const encoded = hash.slice(7);
+  const state = decodeState(encoded);
+  if(state && loadBoardState(state)){
+    showToast('✅ Strat loaded from link!', 'success');
+    // Clean the URL without reloading
+    history.replaceState(null,'',location.pathname);
+  } else {
+    showToast('Could not load strat from link', 'error');
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Strat Library  (localStorage, all maps)
+───────────────────────────────────────────── */
+const LIBRARY_KEY = 'cs2sb_library_v1';
+
+function getLibrary(){
+  try{ return JSON.parse(localStorage.getItem(LIBRARY_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+function saveLibrary(lib){
+  try{ localStorage.setItem(LIBRARY_KEY, JSON.stringify(lib)); }
+  catch(e){ showToast('Storage full — delete old strats', 'error'); }
+}
+
+document.getElementById('save-btn').addEventListener('click', () => {
+  const state = getBoardState();
+  if(!state.name.trim()){ showToast('Give this strat a name first', 'error'); return; }
+  const lib = getLibrary();
+  const existing = lib.findIndex(s=>s.name===state.name && s.map===state.map);
+  state.savedAt = Date.now();
+  if(existing>=0){ lib[existing]=state; showToast('Strat updated in library', 'success'); }
+  else           { lib.push(state);      showToast('Strat saved to library', 'success'); }
+  saveLibrary(lib);
+});
+
+document.getElementById('new-btn').addEventListener('click', () => {
+  pushUndo();
+  elements=[]; playerCnt={ct:1,t:1}; waypointCnt=1;
+  document.getElementById('sname').value='New Strategy';
+  document.getElementById('notes').value='';
+  selectedEl=null; updateSidebar(null); render();
+  showToast('New board started', 'success');
+});
+
+// Library modal
+const modalBg = document.getElementById('modal-bg');
+document.getElementById('library-btn').addEventListener('click', openLibrary);
+document.getElementById('modal-close').addEventListener('click', ()=>{ modalBg.classList.remove('open'); });
+modalBg.addEventListener('click', e=>{ if(e.target===modalBg) modalBg.classList.remove('open'); });
+
+function openLibrary(){
+  const lib = getLibrary();
+  const list = document.getElementById('strat-list');
+  if(lib.length===0){
+    list.innerHTML='<div id="no-strats">No strats saved yet.<br>Draw something and hit 💾 Save!</div>';
+  } else {
+    // Group by map for nicer browsing
+    const byMap = {};
+    lib.forEach(s=>{ (byMap[s.map]=byMap[s.map]||[]).push(s); });
+    list.innerHTML='';
+    for(const [mapKey,strats] of Object.entries(byMap)){
+      const mapName = document.querySelector(`#map-sel option[value="${mapKey}"]`)?.textContent||mapKey;
+      const header = document.createElement('div');
+      header.style='font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.08em;padding:10px 0 5px;border-bottom:1px solid #1e2130;margin-bottom:6px;';
+      header.textContent = mapName;
+      list.appendChild(header);
+      strats.forEach(s=>{
+        const card = document.createElement('div');
+        card.className='strat-card';
+        const saved = s.savedAt ? new Date(s.savedAt).toLocaleDateString() : '';
+        card.innerHTML=`
+          <div class="strat-card-info">
+            <div class="strat-card-name">${s.name}</div>
+            <div class="strat-card-meta">${saved}${s.notes?'  ·  '+s.notes.slice(0,40)+(s.notes.length>40?'…':''):''}</div>
+          </div>
+          <button class="strat-card-del" title="Delete">🗑</button>`;
+        card.querySelector('.strat-card-info').addEventListener('click',()=>{
+          loadBoardState(s);
+          modalBg.classList.remove('open');
+          showToast(`"${s.name}" loaded`, 'success');
+        });
+        card.querySelector('.strat-card-del').addEventListener('click', e=>{
+          e.stopPropagation();
+          if(!confirm(`Delete "${s.name}"?`)) return;
+          const updated = getLibrary().filter(x=>!(x.name===s.name&&x.map===s.map));
+          saveLibrary(updated);
+          openLibrary(); // refresh modal
+          showToast('Strat deleted');
+        });
+        list.appendChild(card);
+      });
+    }
+  }
+  modalBg.classList.add('open');
+}
+
+/* ─────────────────────────────────────────────
+   Boot
+───────────────────────────────────────────── */
+resize();
+loadMap(currentMap);
+loadFromURL();
+</script>
+</body>
+</html>
