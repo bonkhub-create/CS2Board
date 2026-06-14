@@ -875,31 +875,46 @@ function drawEl(el,sel){
 
   } else if(el.type==='text'){
     const s=toScreen(el.x,el.y);
-    const baseFontSize=el.fontSize||14;
-    const fs=Math.max(6,baseFontSize*vz);
-    ctx.font=`500 ${fs}px sans-serif`; ctx.textAlign='left'; ctx.textBaseline='top';
-    const lineH=fs*1.35;
+    const fs=Math.max(6,(el.fontSize||14)*vz);
     const PAD=6;
-    // Compute box width: if el.width set, use it scaled; else auto
-    const maxInnerW = el.width ? el.width*vz : null;
-    const lines = wrapTextLines(ctx, el.text, maxInnerW);
-    const innerW = maxInnerW || Math.max(...lines.map(l=>ctx.measureText(l).width));
-    const bw = innerW + PAD*2;
-    const bh = lines.length*lineH + PAD*1.5;
-    // Background
-    ctx.fillStyle='rgba(0,0,0,0.72)';
+    const lineH=fs*1.4;
+    ctx.font=`500 ${fs}px sans-serif`; ctx.textAlign='left'; ctx.textBaseline='top';
+
+    // Determine box dimensions in screen space
+    const innerW = el.width  ? el.width*vz
+                 : Math.max(...el.text.split(' ').reduce((acc,w,i)=>{
+                     // auto: measure full text as single line
+                     return [el.text];
+                   },[el.text]).map(l=>ctx.measureText(l).width));
+    // Auto single-line width
+    const autoW = ctx.measureText(el.text).width;
+    const bwInner = el.width ? el.width*vz : autoW;
+    const lines = wrapTextLines(ctx, el.text, bwInner);
+    const autoH = lines.length*lineH + PAD*1.5;
+    const bw = bwInner + PAD*2;
+    const bh = el.height ? el.height*vz : autoH;
+
+    // Draw background
+    ctx.fillStyle='rgba(0,0,0,0.75)';
     ctx.beginPath(); ctx.roundRect(s.x,s.y,bw,bh,4); ctx.fill();
-    // Text lines
+
+    // Clip text to box interior
+    ctx.save();
+    ctx.beginPath(); ctx.rect(s.x+2,s.y+2,bw-4,bh-4); ctx.clip();
     ctx.fillStyle='#fff';
-    lines.forEach((ln,i)=>ctx.fillText(ln, s.x+PAD, s.y+PAD*0.75+i*lineH));
+    lines.forEach((ln,i)=>ctx.fillText(ln, s.x+PAD, s.y+PAD*0.6+i*lineH));
+    ctx.restore();
+
     if(sel){
-      ctx.strokeStyle='#e8c840';ctx.lineWidth=1.5;
+      ctx.strokeStyle='#e8c840'; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.roundRect(s.x-2,s.y-2,bw+4,bh+4,5); ctx.stroke();
-      // Resize handle — bottom-right
-      const hx=s.x+bw, hy=s.y+bh, hr=7;
-      ctx.fillStyle='#e8c840'; ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#111'; ctx.font=`bold 9px sans-serif`;
-      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('↔',hx,hy);
+      // Single corner handle bottom-right — drag to resize width & height freely
+      const hx=s.x+bw, hy=s.y+bh;
+      ctx.fillStyle='#e8c840';
+      ctx.beginPath(); ctx.arc(hx,hy,7,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#111'; ctx.font='bold 9px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('⤡',hx,hy);
     }
   }
   ctx.restore();
@@ -1045,14 +1060,23 @@ function drawNadeIcon(sx,sy,r,sel){
 
 /* ── Word-wrap helper ─────────────────────── */
 function wrapTextLines(ctx, text, maxW){
-  if(!maxW) return [text]; // no wrap constraint
+  if(!maxW) return [text];
   const words=text.split(' ');
   const lines=[];
   let cur='';
   for(const w of words){
     const test=cur?cur+' '+w:w;
-    if(ctx.measureText(test).width>maxW && cur){
-      lines.push(cur); cur=w;
+    if(ctx.measureText(test).width>maxW){
+      if(cur) lines.push(cur);
+      // If the single word itself is wider than maxW, force-break it
+      if(ctx.measureText(w).width>maxW){
+        let part='';
+        for(const ch of w){
+          if(ctx.measureText(part+ch).width>maxW){lines.push(part);part=ch;}
+          else part+=ch;
+        }
+        cur=part;
+      } else { cur=w; }
     } else { cur=test; }
   }
   if(cur) lines.push(cur);
@@ -1085,10 +1109,11 @@ function hitTest(spos){
       const s=toScreen(el.x,el.y);
       const fs=Math.max(6,(el.fontSize||14)*vz);
       ctx.font=`500 ${fs}px sans-serif`;
-      const maxInnerW=el.width?el.width*vz:null;
-      const lines=wrapTextLines(ctx,el.text,maxInnerW);
-      const innerW=maxInnerW||Math.max(...lines.map(l=>ctx.measureText(l).width));
-      const bw=innerW+12, bh=lines.length*fs*1.35+9;
+      const bwInner=el.width?el.width*vz:ctx.measureText(el.text).width;
+      const lines=wrapTextLines(ctx,el.text,bwInner);
+      const lineH=fs*1.4;
+      const bw=bwInner+12;
+      const bh=el.height?el.height*vz:lines.length*lineH+9;
       if(spos.x>=s.x-5&&spos.x<=s.x+bw+5&&spos.y>=s.y-5&&spos.y<=s.y+bh+5) return el;
     } else if(el.type==='path'){
       const stol=10/vz;
@@ -1145,8 +1170,8 @@ function updateSidebar(el){
     h=`<div class="si-row">Text: <span>${el.text.slice(0,18)}</span></div>`;
     h+=`<div style="margin-top:6px;font-size:10px;color:var(--text3);margin-bottom:4px">Font size: <span id="fs-val">${fs}px</span></div>`;
     h+=`<input type="range" id="fs-slider" min="8" max="72" step="1" value="${fs}" style="width:100%;accent-color:var(--accent);margin-bottom:6px">`;
-    h+=`<div style="font-size:10px;color:var(--text3);margin-bottom:4px">Width: <span id="fw-val">${el.width?Math.round(el.width)+'px':'auto'}</span></div>`;
-    h+=`<button class="del-btn" id="reset-width-btn" style="background:#0a1e10;color:#60cc80;border-color:#1a4a2a;margin-bottom:4px">↺ Reset width</button>`;
+    h+=`<div style="font-size:10px;color:var(--text3);margin-bottom:4px">Size: <span>${el.width?Math.round(el.width)+'×'+Math.round(el.height||0):'auto'}</span></div>`;
+    h+=`<button class="del-btn" id="reset-width-btn" style="background:#0a1e10;color:#60cc80;border-color:#1a4a2a;margin-bottom:4px">↺ Reset to auto</button>`;
     h+=`<button class="del-btn" id="edit-text-btn" style="background:#0e1e30;color:#60aaff;border-color:#1a3a5a;margin-bottom:4px">✏ Edit text</button>`;
   }
   h+='<button class="del-btn" id="del-btn">🗑 Delete selected</button>';
@@ -1168,7 +1193,7 @@ function updateSidebar(el){
   if(resetWBtn){
     resetWBtn.onclick=()=>{
       if(!selectedEl||selectedEl.type!=='text') return;
-      pushUndo(); selectedEl.width=null;
+      pushUndo(); selectedEl.width=null; selectedEl.height=null;
       updateSidebar(selectedEl); render();
     };
   }
@@ -1324,13 +1349,13 @@ function onDown(e){
     const s=toScreen(selectedEl.x,selectedEl.y);
     const fs=Math.max(6,(selectedEl.fontSize||14)*vz);
     ctx.font=`500 ${fs}px sans-serif`;
-    const maxInnerW=selectedEl.width?selectedEl.width*vz:null;
-    const lines=wrapTextLines(ctx,selectedEl.text,maxInnerW);
-    const innerW=maxInnerW||Math.max(...lines.map(l=>ctx.measureText(l).width));
-    const bw=innerW+12;
-    const bh=lines.length*fs*1.35+9;
+    const bwInner=selectedEl.width?selectedEl.width*vz:ctx.measureText(selectedEl.text).width;
+    const lines=wrapTextLines(ctx,selectedEl.text,bwInner);
+    const lineH=fs*1.4;
+    const bw=bwInner+12;
+    const bh=selectedEl.height?selectedEl.height*vz:lines.length*lineH+9;
     const hx=s.x+bw, hy=s.y+bh;
-    if(Math.hypot(spos.x-hx,spos.y-hy)<12){
+    if(Math.hypot(spos.x-hx,spos.y-hy)<14){
       isResizingText=true; resizeEl=selectedEl; render(); return;
     }
   }
@@ -1351,7 +1376,7 @@ function onDown(e){
     elements.push({type:currentTool,x:wpos.x,y:wpos.y,r});render();
   } else if(currentTool==='text'){
     const txt=prompt('Label text:');
-    if(txt&&txt.trim()){pushUndo();elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim(),fontSize:14,width:null});render();}
+    if(txt&&txt.trim()){pushUndo();elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim(),fontSize:14,width:null,height:null});render();}
   } else if(currentTool==='waypoint'){
     pushUndo();
     // Find the next available number for this color by looking at existing elements
@@ -1377,11 +1402,13 @@ function onMove(e){
   const wpos=toWorld(spos.x,spos.y);
   if(isResizingText&&resizeEl){
     const s=toScreen(resizeEl.x,resizeEl.y);
-    // dx from text origin to mouse = desired box screen width
-    const screenW=Math.max(30, spos.x-s.x);
-    // Convert to world px (divide by vz) — subtract padding
-    const innerW=Math.max(20, (screenW-12)/vz);
-    resizeEl.width=innerW; // world pixels, controls word-wrap
+    const PAD=12; // screen px padding (6*2)
+    // Width: distance from left edge to mouse, minus padding
+    const screenW=Math.max(PAD+20, spos.x-s.x);
+    resizeEl.width=Math.max(10,(screenW-PAD)/vz);
+    // Height: distance from top edge to mouse, minus padding
+    const screenH=Math.max(PAD+10, spos.y-s.y);
+    resizeEl.height=Math.max(8,(screenH-PAD*0.75)/vz);
     render(); return;
   }
   if(isPanning&&panStart){vx=panOrigin.x+(spos.x-panStart.x);vy=panOrigin.y+(spos.y-panStart.y);render();return;}
