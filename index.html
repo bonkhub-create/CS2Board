@@ -338,9 +338,9 @@ body{background:var(--bg0);color:var(--text1)}
 }
 
 /* Hide mobile elements on desktop */
-#mob-top, #mob-bar, #mob-notes-overlay, #mob-color-overlay { display:none; }
-@media (max-width:768px){
-  #mob-top, #mob-bar { display:flex; }
+/* Mobile elements hidden on desktop, shown on mobile */
+@media (min-width:769px){
+  #mob-top, #mob-bar, #mob-notes-overlay, #mob-color-overlay { display:none !important; }
 }
 </style>
 </head>
