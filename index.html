@@ -868,12 +868,22 @@ function drawEl(el,sel){
 
   } else if(el.type==='text'){
     const s=toScreen(el.x,el.y);
-    const fs=Math.max(9,13*Math.min(vz,2));
+    const baseFontSize=el.fontSize||14;
+    const fs=Math.max(6,baseFontSize*vz);
     ctx.font=`500 ${fs}px sans-serif`; ctx.textAlign='left'; ctx.textBaseline='top';
     const tw=ctx.measureText(el.text).width;
-    ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(s.x-2,s.y-2,tw+8,fs+6);
-    ctx.fillStyle='#fff'; ctx.fillText(el.text,s.x+2,s.y+1);
-    if(sel){ctx.strokeStyle='#e8c840';ctx.lineWidth=1;ctx.strokeRect(s.x-3,s.y-3,tw+10,fs+8);}
+    const bw=tw+8,bh=fs+8;
+    ctx.fillStyle='rgba(0,0,0,0.68)';
+    ctx.beginPath(); ctx.roundRect(s.x-2,s.y-2,bw,bh,3); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.fillText(el.text,s.x+2,s.y+2);
+    if(sel){
+      ctx.strokeStyle='#e8c840';ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.roundRect(s.x-3,s.y-3,bw+2,bh+2,3); ctx.stroke();
+      const hx=s.x+bw-1,hy=s.y+bh-1,hr=6;
+      ctx.fillStyle='#e8c840'; ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#000'; ctx.font=`bold 9px sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⤢',hx,hy);
+    }
   }
   ctx.restore();
 }
@@ -1040,10 +1050,10 @@ function hitTest(spos){
       if(Math.hypot(wp.x-el.x,wp.y-el.y)<el.r+tol) return el;
     } else if(el.type==='text'){
       const s=toScreen(el.x,el.y);
-      const fs=Math.max(9,13*Math.min(vz,2));
+      const fs=Math.max(6,(el.fontSize||14)*vz);
       ctx.font=`500 ${fs}px sans-serif`;
       const tw=ctx.measureText(el.text).width;
-      if(spos.x>=s.x-3&&spos.x<=s.x+tw+7&&spos.y>=s.y-3&&spos.y<=s.y+fs+8) return el;
+      if(spos.x>=s.x-5&&spos.x<=s.x+tw+10&&spos.y>=s.y-5&&spos.y<=s.y+fs+10) return el;
     } else if(el.type==='path'){
       const stol=10/vz;
       for(let j=0;j<el.points.length-1;j++)
@@ -1095,7 +1105,11 @@ function updateSidebar(el){
   } else if(el.type==='path'){
     h=`<div class="si-row">Type: <span>${el.arrow?'Arrow':'Path'}</span></div>`;
   } else if(el.type==='text'){
-    h=`<div class="si-row">Text: <span>${el.text.slice(0,16)}</span></div>`;
+    const fs=el.fontSize||14;
+    h=`<div class="si-row">Text: <span>${el.text.slice(0,18)}</span></div>`;
+    h+=`<div style="margin-top:6px;font-size:10px;color:var(--text3);margin-bottom:4px">Font size: <span id="fs-val">${fs}px</span></div>`;
+    h+=`<input type="range" id="fs-slider" min="8" max="72" step="1" value="${fs}" style="width:100%;accent-color:var(--accent);margin-bottom:6px">`;
+    h+=`<button class="del-btn" id="edit-text-btn" style="background:#0e1e30;color:#60aaff;border-color:#1a3a5a;margin-bottom:4px">✏ Edit text</button>`;
   }
   h+='<button class="del-btn" id="del-btn">🗑 Delete selected</button>';
   info.innerHTML=h;
@@ -1103,6 +1117,23 @@ function updateSidebar(el){
     pushUndo();elements=elements.filter(e=>e!==selectedEl);
     selectedEl=null;updateSidebar(null);render();
   };
+  const fsSlider=document.getElementById('fs-slider');
+  if(fsSlider){
+    fsSlider.addEventListener('input',()=>{
+      if(!selectedEl||selectedEl.type!=='text') return;
+      selectedEl.fontSize=parseInt(fsSlider.value,10);
+      document.getElementById('fs-val').textContent=fsSlider.value+'px';
+      render();
+    });
+  }
+  const editBtn=document.getElementById('edit-text-btn');
+  if(editBtn){
+    editBtn.onclick=()=>{
+      if(!selectedEl||selectedEl.type!=='text') return;
+      const txt=prompt('Edit text:',selectedEl.text);
+      if(txt!==null&&txt.trim()){pushUndo();selectedEl.text=txt.trim();updateSidebar(selectedEl);render();}
+    };
+  }
   info.querySelectorAll('.pc-swatch').forEach(sw=>{
     sw.addEventListener('click',()=>{
       if(!selectedEl||selectedEl.type!=='player') return;
@@ -1148,6 +1179,7 @@ cv.addEventListener('contextmenu',e=>{
 // Mobile: single finger pans map unless a draw/place tool is active.
 // Two fingers always pinch-zoom.
 let touchPanStart=null, touchPanOrigin=null;
+let isResizingText=false, resizeEl=null;
 let pinchStartDist=0, pinchStartZ=0, pinchMidX=0, pinchMidY=0;
 let touchDrawing=false;
 
@@ -1240,6 +1272,19 @@ function onDown(e){
   const spos=getPos(e);
   const wpos=toWorld(spos.x,spos.y);
   if(isPanMode()){isPanning=true;panStart=spos;panOrigin={x:vx,y:vy};render();return;}
+
+  // Check if clicking the resize handle of a selected text element
+  if(selectedEl&&selectedEl.type==='text'){
+    const s=toScreen(selectedEl.x,selectedEl.y);
+    const fs=Math.max(6,(selectedEl.fontSize||14)*vz);
+    ctx.font=`500 ${fs}px sans-serif`;
+    const tw=ctx.measureText(selectedEl.text).width;
+    const hx=s.x+tw+6, hy=s.y+fs+5;
+    if(Math.hypot(spos.x-hx,spos.y-hy)<12){
+      isResizingText=true; resizeEl=selectedEl; render(); return;
+    }
+  }
+
   if(currentTool==='select'){
     selectedEl=hitTest(spos);
     if(selectedEl){
@@ -1256,7 +1301,7 @@ function onDown(e){
     elements.push({type:currentTool,x:wpos.x,y:wpos.y,r});render();
   } else if(currentTool==='text'){
     const txt=prompt('Label text:');
-    if(txt&&txt.trim()){pushUndo();elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim()});render();}
+    if(txt&&txt.trim()){pushUndo();elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim(),fontSize:14});render();}
   } else if(currentTool==='waypoint'){
     pushUndo();
     // Find the next available number for this color by looking at existing elements
@@ -1280,6 +1325,15 @@ function onDown(e){
 function onMove(e){
   const spos=getPos(e);
   const wpos=toWorld(spos.x,spos.y);
+  if(isResizingText&&resizeEl){
+    const s=toScreen(resizeEl.x,resizeEl.y);
+    const dx=Math.max(20,spos.x-s.x);
+    // measure text at base size 12 to get reference width
+    ctx.font=`500 12px sans-serif`;
+    const baseW=Math.max(20,ctx.measureText(resizeEl.text).width);
+    resizeEl.fontSize=Math.max(8,Math.min(72,Math.round((dx/baseW)*12)));
+    render(); return;
+  }
   if(isPanning&&panStart){vx=panOrigin.x+(spos.x-panStart.x);vy=panOrigin.y+(spos.y-panStart.y);render();return;}
   if(isDragging&&selectedEl){
     if(selectedEl.type==='path'){
@@ -1296,6 +1350,7 @@ function onMove(e){
 }
 
 function onUp(e){
+  if(isResizingText){isResizingText=false;resizeEl=null;render();return;}
   if(e&&e.button===1){
     middleDown=false;
     if(isDragging){isDragging=false;}
