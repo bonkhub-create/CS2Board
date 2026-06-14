@@ -372,6 +372,15 @@ body{background:var(--bg0);color:var(--text1)}
           <polyline points="11,7 17,7 17,13"/>
         </svg>
       </div>
+      <!-- Line color dots — sit directly under the draw/arrow tools -->
+      <div id="color-picker" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:2px 0;width:60px">
+        <div class="c-dot active" data-color="#60aaff" style="width:15px;height:15px;background:#60aaff" data-tip="Blue"></div>
+        <div class="c-dot" data-color="#e8c840" style="width:15px;height:15px;background:#e8c840" data-tip="Yellow"></div>
+        <div class="c-dot" data-color="#60cc60" style="width:15px;height:15px;background:#60cc60" data-tip="Green"></div>
+        <div class="c-dot" data-color="#e06040" style="width:15px;height:15px;background:#e06040" data-tip="Red"></div>
+        <div class="c-dot" data-color="#cc60cc" style="width:15px;height:15px;background:#cc60cc" data-tip="Purple"></div>
+        <div class="c-dot" data-color="#ffffff" style="width:15px;height:15px;background:#fff;border-color:#444" data-tip="White"></div>
+      </div>
       <div class="tb-btn" data-tool="text" style="font-size:14px;font-weight:700;color:var(--text2)" data-tip="Add a Text Label">T</div>
       <div class="tb-btn" data-tool="waypoint" style="font-size:14px;font-weight:700;id="btn-waypoint" style="font-size:14px;font-weight:700;color:#e8c840" data-tip="Place Numbered Waypoint">①</div>
       <div id="waypoint-colors" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:2px 0;width:60px">
@@ -543,16 +552,6 @@ body{background:var(--bg0);color:var(--text1)}
       <div id="cvwrap"><canvas id="cv"></canvas></div>
 
       <div id="sidebar">
-
-        <div class="s-lbl">Line Color</div>
-        <div class="color-row" id="color-picker">
-          <div class="c-dot active" data-color="#60aaff" style="background:#60aaff" data-tip="Blue"></div>
-          <div class="c-dot" data-color="#e8c840" style="background:#e8c840" data-tip="Yellow"></div>
-          <div class="c-dot" data-color="#60cc60" style="background:#60cc60" data-tip="Green"></div>
-          <div class="c-dot" data-color="#e06040" style="background:#e06040" data-tip="Red"></div>
-          <div class="c-dot" data-color="#cc60cc" style="background:#cc60cc" data-tip="Purple"></div>
-          <div class="c-dot" data-color="#ffffff" style="background:#fff;border-color:#444" data-tip="White"></div>
-        </div>
 
         <div class="s-lbl">Notes</div>
         <textarea id="notes" placeholder="Describe the strategy...&#10;&#10;e.g. 3 rush B, smoke van, flash over CT..." data-tip="Notes Appear in PNG Export"></textarea>
