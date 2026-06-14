@@ -1538,30 +1538,31 @@ document.getElementById('export-btn').addEventListener('click',()=>{
   offscreen.height=totalH;
   const oc=offscreen.getContext('2d');
 
-  // Copy the existing canvas (map + elements)
-  oc.drawImage(cv,0,0);
+  // Map is drawn offset right when notes are present
+  const mapOffsetX=notes?NOTES_W:0;
+  oc.drawImage(cv,mapOffsetX,0);
 
   if(notes){
-    // Notes panel background
+    // Notes panel background (LEFT side)
     oc.fillStyle='#13161f';
-    oc.fillRect(W,0,NOTES_W,totalH);
-    // Left border
+    oc.fillRect(0,0,NOTES_W,totalH);
+    // Right border dividing notes from map
     oc.fillStyle='#2a2f42';
-    oc.fillRect(W,0,1,totalH);
+    oc.fillRect(NOTES_W-1,0,1,totalH);
 
     // Header: strat name + map
     oc.fillStyle='#e8c840';
     oc.font='bold 16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
     oc.textAlign='left'; oc.textBaseline='top';
-    oc.fillText(stratName,W+PAD,PAD);
+    oc.fillText(stratName,PAD,PAD);
 
     oc.fillStyle='#5a6080';
     oc.font='12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
-    oc.fillText(mapName,W+PAD,PAD+22);
+    oc.fillText(mapName,PAD,PAD+22);
 
     // Divider
     oc.fillStyle='#2a2f42';
-    oc.fillRect(W+PAD,PAD+40,NOTES_W-PAD*2,1);
+    oc.fillRect(PAD,PAD+40,NOTES_W-PAD*2,1);
 
     // Notes text — word-wrap
     oc.fillStyle='#c8cad8';
@@ -1579,11 +1580,11 @@ document.getElementById('export-btn').addEventListener('click',()=>{
       for(const word of tokens){
         const test=row?row+' '+word:word;
         if(oc.measureText(test).width>maxW&&row){
-          oc.fillText(row,W+PAD,y); y+=lineH; row=word;
+          oc.fillText(row,PAD,y); y+=lineH; row=word;
           if(y>totalH-PAD) break;
         } else { row=test; }
       }
-      if(row&&y<=totalH-PAD){oc.fillText(row,W+PAD,y);y+=lineH;}
+      if(row&&y<=totalH-PAD){oc.fillText(row,PAD,y);y+=lineH;}
     }
   }
 
