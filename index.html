@@ -627,8 +627,9 @@ function applyZoomInput(){
   updateZoomUI(); render();
 }
 zoomInp.addEventListener('keydown',e=>{
-  if(e.key==='Enter'){applyZoomInput();zoomInp.blur();}
-  e.stopPropagation(); // prevent canvas shortcuts while typing
+  if(e.key==='Enter'){applyZoomInput();zoomInp.blur();e.preventDefault();return;}
+  // Only block plain keys — let Ctrl/Cmd combos (Ctrl+Z, Ctrl+S etc.) bubble normally
+  if(!e.ctrlKey&&!e.metaKey) e.stopPropagation();
 });
 zoomInp.addEventListener('blur',applyZoomInput);
 zoomInp.addEventListener('focus',()=>zoomInp.select());
