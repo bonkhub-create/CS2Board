@@ -1259,7 +1259,9 @@ function onDown(e){
     if(txt&&txt.trim()){pushUndo();elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim()});render();}
   } else if(currentTool==='waypoint'){
     pushUndo();
-    const wnum=waypointColorCnt[currentWaypointColor]++;
+    // Find the next available number for this color by looking at existing elements
+    const usedNums=new Set(elements.filter(e=>e.type==='waypoint'&&e.wcolor===currentWaypointColor).map(e=>e.num));
+    let wnum=1; while(usedNums.has(wnum)) wnum++;
     elements.push({type:'waypoint',x:wpos.x,y:wpos.y,num:wnum,wcolor:currentWaypointColor});
     render();
   } else {
