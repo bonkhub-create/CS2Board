@@ -944,16 +944,16 @@ function drawSniperIcon(sx,sy,sel){
   ctx.save();
   // Outer ring
   ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2);
-  ctx.fillStyle='#1a0a2e'; ctx.fill();
-  ctx.strokeStyle='#cc33ff'; ctx.lineWidth=sel?2:1.5; ctx.stroke();
+  ctx.fillStyle='#2e0a0a'; ctx.fill();
+  ctx.strokeStyle='#dd2222'; ctx.lineWidth=sel?2:1.5; ctx.stroke();
   // Crosshair lines
   const lw=r*0.55;
-  ctx.strokeStyle='rgba(200,100,255,0.85)'; ctx.lineWidth=Math.max(0.8,r*0.18); ctx.lineCap='round';
+  ctx.strokeStyle='rgba(220,60,60,0.9)'; ctx.lineWidth=Math.max(0.8,r*0.18); ctx.lineCap='round';
   ctx.beginPath(); ctx.moveTo(sx-lw,sy); ctx.lineTo(sx+lw,sy); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(sx,sy-lw); ctx.lineTo(sx,sy+lw); ctx.stroke();
   // Centre dot
   ctx.beginPath(); ctx.arc(sx,sy,Math.max(1,r*0.22),0,Math.PI*2);
-  ctx.fillStyle='#cc33ff'; ctx.fill();
+  ctx.fillStyle='#dd2222'; ctx.fill();
   if(sel){ctx.shadowColor='#e8c840';ctx.shadowBlur=10;ctx.strokeStyle='#e8c840';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,r+4,0,Math.PI*2);ctx.stroke();}
   ctx.restore();
 }
