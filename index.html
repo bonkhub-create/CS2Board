@@ -96,7 +96,15 @@ body{background:var(--bg0);color:var(--text1)}
 }
 .top-btn:hover{background:var(--bg3);color:var(--text1)}
 .top-btn.accent{border-color:#2a5a2a;color:#60cc60}
-#zoom-display{font-size:12px;color:var(--text3);min-width:42px;text-align:center}
+#zoom-input{
+  width:64px;height:38px;background:var(--bg2);color:var(--text1);
+  border:1px solid var(--border2);border-radius:8px;
+  font-size:13px;text-align:center;outline:none;padding:0 6px;
+  -moz-appearance:textfield;
+}
+#zoom-input::-webkit-outer-spin-button,
+#zoom-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#zoom-input:focus{border-color:var(--accent);color:var(--accent)}
 
 /* ── Board ── */
 #board{display:flex;flex:1;overflow:hidden;min-height:0}
@@ -389,9 +397,7 @@ body{background:var(--bg0);color:var(--text1)}
         <option value="de_train">Train</option>
       </select>
       <div class="tsep"></div>
-      <button class="top-btn" id="zoom-out-btn" style="font-size:18px;padding:0 10px" data-tip="Zoom out (−)">−</button>
-      <span id="zoom-display" data-tip="Current Zoom Level">100%</span>
-      <button class="top-btn" id="zoom-in-btn" style="font-size:16px;padding:0 10px" data-tip="Zoom in (+)">+</button>
+      <input id="zoom-input" type="number" value="100" min="30" max="800" step="5" data-tip="Zoom % — type a value or press Enter"/>
       <button class="top-btn" id="zoom-reset-btn" data-tip="Reset Zoom to Fit Map">Fit</button>
       <div class="tsep"></div>
       <button class="top-btn" id="undo-btn" data-tip="Undo Last Action (Ctrl+Z)">↩ Undo</button>
@@ -598,10 +604,34 @@ function zoomAt(sx,sy,factor){
   const r=nz/vz; vx=sx-(sx-vx)*r; vy=sy-(sy-vy)*r; vz=nz;
   updateZoomUI(); render();
 }
-function updateZoomUI(){document.getElementById('zoom-display').textContent=Math.round(vz*100)+'%';}
-document.getElementById('zoom-in-btn').onclick=()=>zoomAt(W/2,H/2,1.3);
-document.getElementById('zoom-out-btn').onclick=()=>zoomAt(W/2,H/2,1/1.3);
+function updateZoomUI(){
+  const inp=document.getElementById('zoom-input');
+  // Only update if user isn't currently typing in the field
+  if(document.activeElement!==inp) inp.value=Math.round(vz*100);
+}
 document.getElementById('zoom-reset-btn').onclick=fitMap;
+
+// Zoom input — apply on Enter or blur
+const zoomInp=document.getElementById('zoom-input');
+function applyZoomInput(){
+  let val=parseInt(zoomInp.value,10);
+  if(isNaN(val)||val<=0) val=Math.round(vz*100);
+  val=Math.min(800,Math.max(30,val));
+  zoomInp.value=val;
+  const newZ=val/100;
+  // Zoom toward canvas centre
+  const cx=W/2, cy=H/2;
+  vx=cx-(cx-vx)*(newZ/vz);
+  vy=cy-(cy-vy)*(newZ/vz);
+  vz=newZ;
+  updateZoomUI(); render();
+}
+zoomInp.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){applyZoomInput();zoomInp.blur();}
+  e.stopPropagation(); // prevent canvas shortcuts while typing
+});
+zoomInp.addEventListener('blur',applyZoomInput);
+zoomInp.addEventListener('focus',()=>zoomInp.select());
 cv.addEventListener('wheel',e=>{
   e.preventDefault();
   const r=cv.getBoundingClientRect();
