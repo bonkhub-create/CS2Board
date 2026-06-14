@@ -366,7 +366,15 @@ body{background:var(--bg0);color:var(--text1)}
         </svg>
       </div>
       <div class="tb-btn" data-tool="text" style="font-size:14px;font-weight:700;color:var(--text2)" data-tip="Add a Text Label">T</div>
-      <div class="tb-btn" data-tool="waypoint" style="font-size:14px;font-weight:700;color:var(--accent)" data-tip="Place Numbered Waypoint">①</div>
+      <div class="tb-btn" data-tool="waypoint" style="font-size:14px;font-weight:700;id="btn-waypoint" style="font-size:14px;font-weight:700;color:#e8c840" data-tip="Place Numbered Waypoint">①</div>
+      <div id="waypoint-colors" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:2px 0;width:60px">
+        <div class="wc-global active" data-wcolor="yellow" style="width:15px;height:15px;border-radius:50%;background:#e8c840;border:2px solid #fff;cursor:pointer" data-tip="Yellow waypoints"></div>
+        <div class="wc-global" data-wcolor="blue"   style="width:15px;height:15px;border-radius:50%;background:#4a9ed8;border:2px solid transparent;cursor:pointer" data-tip="Blue waypoints"></div>
+        <div class="wc-global" data-wcolor="green"  style="width:15px;height:15px;border-radius:50%;background:#33bb44;border:2px solid transparent;cursor:pointer" data-tip="Green waypoints"></div>
+        <div class="wc-global" data-wcolor="red"    style="width:15px;height:15px;border-radius:50%;background:#dd3333;border:2px solid transparent;cursor:pointer" data-tip="Red waypoints"></div>
+        <div class="wc-global" data-wcolor="purple" style="width:15px;height:15px;border-radius:50%;background:#9955dd;border:2px solid transparent;cursor:pointer" data-tip="Purple waypoints"></div>
+        <div class="wc-global" data-wcolor="white"  style="width:15px;height:15px;border-radius:50%;background:#ddd;border:2px solid transparent;cursor:pointer" data-tip="White waypoints"></div>
+      </div>
     </div>
 
     <div class="tp-sep"></div>
@@ -653,6 +661,9 @@ const PLAYER_COLORS = {
 };
 const PLAYER_COLOR_KEYS = ['blue','orange','purple','green','yellow'];
 const ENEMY_COLOR = {fill:'#1e1e1e', stroke:'#777777', text:'#aaaaaa'};
+const WAYPOINT_COLORS={yellow:{fill:'#1a1400',stroke:'#e8c840',text:'#e8c840'},blue:{fill:'#0a1a30',stroke:'#4a9ed8',text:'#80c8ff'},green:{fill:'#0a2010',stroke:'#33bb44',text:'#77ee88'},red:{fill:'#2a0a0a',stroke:'#dd3333',text:'#ff7777'},purple:{fill:'#1a0a2e',stroke:'#9955dd',text:'#cc88ff'},white:{fill:'#1a1a1a',stroke:'#dddddd',text:'#ffffff'}};
+const WAYPOINT_COLOR_KEYS=['yellow','blue','green','red','purple','white'];
+const WC_HEX={yellow:'#e8c840',blue:'#4a9ed8',green:'#33bb44',red:'#dd3333',purple:'#9955dd',white:'#dddddd'};
 const PC_HEX = {blue:'#4a9ed8',orange:'#e05500',purple:'#9955dd',green:'#33bb44',yellow:'#ccaa00'};
 
 const MAP_SCALE = {
@@ -667,6 +678,8 @@ let W=0,H=0,currentMap='de_mirage',currentTool='draw',currentColor='#60aaff';
 let elements=[],selectedEl=null,undoStack=[];
 let mapImages={},mapLoaded=false;
 let playerCnt={teammate:1,enemy:1},waypointCnt=1,currentPlayerColor='blue';
+let currentWaypointColor='yellow';
+let waypointColorCnt={yellow:1,blue:1,green:1,red:1,purple:1,white:1};
 
 let vx=0,vy=0,vz=1;
 const MIN_Z=0.3,MAX_Z=8;
@@ -811,13 +824,14 @@ function drawEl(el,sel){
   } else if(el.type==='waypoint'){
     const s=toScreen(el.x,el.y),r=Math.max(7,13*Math.min(vz,2));
     ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2);
-    ctx.fillStyle='#1a1400'; ctx.fill();
-    ctx.strokeStyle='#e8c840'; ctx.lineWidth=sel?2.5:2; ctx.stroke();
-    ctx.fillStyle='#e8c840';
+    const wc=WAYPOINT_COLORS[el.wcolor]||WAYPOINT_COLORS.yellow;
+    ctx.fillStyle=wc.fill; ctx.fill();
+    ctx.strokeStyle=wc.stroke; ctx.lineWidth=sel?2.5:2; ctx.stroke();
+    ctx.fillStyle=wc.text;
     ctx.font=`bold ${Math.max(7,12*Math.min(vz,2))}px sans-serif`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(el.num,s.x,s.y);
-    if(sel){ctx.strokeStyle='rgba(232,200,64,0.3)';ctx.lineWidth=5;ctx.beginPath();ctx.arc(s.x,s.y,r+5,0,Math.PI*2);ctx.stroke();}
+    if(sel){ctx.globalAlpha=0.3;ctx.strokeStyle=wc.stroke;ctx.lineWidth=5;ctx.beginPath();ctx.arc(s.x,s.y,r+5,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
 
   } else if(el.type==='smokezone'){
     const s=toScreen(el.x,el.y),sr=el.r*vz;
@@ -1017,7 +1031,7 @@ function distToSeg(pw,aw,bw){
 }
 function hitTest(spos){
   const wp=toWorld(spos.x,spos.y);
-  const tol=22/vz;
+  const tol=Math.max(14,22/vz);
   for(let i=elements.length-1;i>=0;i--){
     const el=elements[i];
     if(el.type==='player'||el.type==='icon'||el.type==='waypoint'){
@@ -1065,7 +1079,13 @@ function updateSidebar(el){
       h+='</div>';
     }
   } else if(el.type==='waypoint'){
-    h=`<div class="si-row">Type: <span>Waypoint</span></div><div class="si-row">Step: <span>#${el.num}</span></div>`;
+    h=`<div class="si-row">Type: <span>Waypoint</span></div><div class="si-row">Number: <span>${el.num}</span></div>`;
+    h+=`<div style="margin-top:6px;font-size:10px;color:var(--text3);margin-bottom:5px">Waypoint color</div><div style="display:flex;gap:6px;flex-wrap:wrap">`;
+    WAYPOINT_COLOR_KEYS.forEach(k=>{
+      const active=(el.wcolor||'yellow')===k;
+      h+=`<div class="wc-swatch" data-wcolor="${k}" style="width:20px;height:20px;border-radius:50%;background:${WC_HEX[k]};border:2px solid ${active?'#fff':'transparent'};cursor:pointer;flex-shrink:0"></div>`;
+    });
+    h+='</div>';
   } else if(el.type==='smokezone'){
     h=`<div class="si-row">Type: <span>Smoke Zone</span></div>`;
   } else if(el.type==='molotovzone'){
@@ -1089,6 +1109,15 @@ function updateSidebar(el){
       pushUndo();
       selectedEl.color=sw.dataset.pcolor;
       currentPlayerColor=sw.dataset.pcolor;
+      updateSidebar(selectedEl);render();
+    });
+  });
+  info.querySelectorAll('.wc-swatch').forEach(sw=>{
+    sw.addEventListener('click',()=>{
+      if(!selectedEl||selectedEl.type!=='waypoint') return;
+      pushUndo();
+      selectedEl.wcolor=sw.dataset.wcolor;
+      currentWaypointColor=sw.dataset.wcolor;
       updateSidebar(selectedEl);render();
     });
   });
@@ -1191,6 +1220,7 @@ let middleDown=false;
 function isPanMode(){return spaceDown||(middleDown&&!isDragging);}
 
 function onDown(e){
+  if(e.button===2) return; // right-click handled by contextmenu
   if(e.button===1){
     e.preventDefault();
     middleDown=true;
@@ -1228,7 +1258,10 @@ function onDown(e){
     const txt=prompt('Label text:');
     if(txt&&txt.trim()){pushUndo();elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim()});render();}
   } else if(currentTool==='waypoint'){
-    pushUndo();elements.push({type:'waypoint',x:wpos.x,y:wpos.y,num:waypointCnt++});render();
+    pushUndo();
+    const wnum=waypointColorCnt[currentWaypointColor]++;
+    elements.push({type:'waypoint',x:wpos.x,y:wpos.y,num:wnum,wcolor:currentWaypointColor});
+    render();
   } else {
     pushUndo();
     if(currentTool==='teammate'){
@@ -1308,6 +1341,15 @@ document.querySelectorAll('.pc-global').forEach(dot=>{
     setPlayerColor(dot.dataset.pcolor);
   });
 });
+document.querySelectorAll('.wc-global').forEach(dot=>{
+  dot.addEventListener('click',()=>{
+    document.querySelectorAll('.wc-global').forEach(d=>{d.style.borderColor='transparent';d.classList.remove('active');});
+    dot.style.borderColor='#fff'; dot.classList.add('active');
+    currentWaypointColor=dot.dataset.wcolor;
+    const wpBtn=document.getElementById('btn-waypoint');
+    if(wpBtn) wpBtn.style.color=WC_HEX[currentWaypointColor];
+  });
+});
 document.querySelectorAll('.c-dot').forEach(dot=>{
   dot.addEventListener('click',()=>{
     document.querySelectorAll('.c-dot').forEach(d=>d.classList.remove('active'));
@@ -1337,7 +1379,7 @@ document.addEventListener('click', e=>{
 document.getElementById('map-sel').addEventListener('change',e=>{currentMap=e.target.value;mapLoaded=false;loadMap(currentMap);});
 document.getElementById('undo-btn').addEventListener('click',undo);
 document.getElementById('clear-btn').addEventListener('click',()=>{
-  pushUndo();elements=[];playerCnt={teammate:1,enemy:1};waypointCnt=1;
+  pushUndo();elements=[];playerCnt={teammate:1,enemy:1};waypointCnt=1;waypointColorCnt={yellow:1,blue:1,green:1,red:1,purple:1,white:1};
   selectedEl=null;updateSidebar(null);render();showToast('Board cleared','success');
 });
 
@@ -1436,6 +1478,8 @@ function getBoardState(){
 function loadBoardState(state){
   if(!state||state.v!==1) return false;
   elements=state.elements||[];playerCnt=state.playerCnt||{ct:1,t:1};waypointCnt=state.waypointCnt||1;
+  waypointColorCnt={yellow:1,blue:1,green:1,red:1,purple:1,white:1};
+  elements.filter(e=>e.type==='waypoint').forEach(e=>{const c=e.wcolor||'yellow';if(waypointColorCnt[c]<=e.num)waypointColorCnt[c]=e.num+1;});
   document.getElementById('sname').value=state.name||'';
   document.getElementById('notes').value=state.notes||'';
   if(state.map&&state.map!==currentMap){
@@ -1490,7 +1534,7 @@ document.getElementById('save-btn').addEventListener('click',()=>{
   saveLibrary(lib);
 });
 document.getElementById('new-btn').addEventListener('click',()=>{
-  pushUndo();elements=[];playerCnt={teammate:1,enemy:1};waypointCnt=1;
+  pushUndo();elements=[];playerCnt={teammate:1,enemy:1};waypointCnt=1;waypointColorCnt={yellow:1,blue:1,green:1,red:1,purple:1,white:1};
   document.getElementById('sname').value='New Strategy';
   document.getElementById('notes').value='';
   selectedEl=null;updateSidebar(null);render();syncNotesBar();showToast('New board started','success');
