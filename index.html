@@ -75,35 +75,42 @@ body{background:var(--bg0);color:var(--text1)}
 
 /* ── Top bar ── */
 #topbar{
-  display:flex;align-items:center;gap:8px;padding:8px 14px;
+  display:flex;align-items:center;gap:6px;padding:6px 12px;
   background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;
 }
 #sname{
-  background:var(--bg2);color:var(--accent);border:1px solid #2e2a00;
-  border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;
-  width:160px;height:38px;outline:none;
+  background:var(--bg2);color:var(--accent);border:1.5px solid transparent;
+  border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600;
+  width:160px;height:34px;outline:none;transition:border-color .12s;
 }
+#sname:hover{border-color:var(--border2)}
 #sname:focus{border-color:var(--accent)}
 #map-sel{
-  background:var(--bg2);color:var(--text1);border:1px solid var(--border2);
-  border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;height:38px;outline:none;
+  background:var(--bg2);color:var(--text1);border:1.5px solid transparent;
+  border-radius:8px;padding:5px 10px;font-size:12px;font-weight:500;
+  cursor:pointer;height:34px;outline:none;transition:border-color .12s;
 }
+#map-sel:hover{border-color:var(--border2)}
 .tsep{width:1px;height:28px;background:var(--border);flex-shrink:0}
 .top-btn{
-  height:38px;padding:0 12px;border-radius:8px;border:1px solid var(--border2);
-  background:var(--bg2);color:var(--text2);font-size:12px;cursor:pointer;
-  display:flex;align-items:center;gap:6px;white-space:nowrap;transition:background .1s,color .1s;
+  height:34px;padding:0 11px;border-radius:8px;border:1.5px solid transparent;
+  background:var(--bg2);color:var(--text2);font-size:11px;font-weight:500;
+  letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;
+  white-space:nowrap;transition:background .12s,border-color .12s,color .12s;
+  user-select:none;
 }
-.top-btn:hover{background:var(--bg3);color:var(--text1)}
-.top-btn.accent{border-color:#2a5a2a;color:#60cc60}
+.top-btn:hover{background:var(--bg3);border-color:var(--border2);color:var(--text1)}
+.top-btn.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.top-btn.accent{border-color:#1e4a1e;color:#50cc70}
 #zoom-input{
-  width:64px;height:38px;background:var(--bg2);color:var(--text1);
-  border:1px solid var(--border2);border-radius:8px;
-  font-size:13px;text-align:center;outline:none;padding:0 6px;
-  -moz-appearance:textfield;
+  width:60px;height:34px;background:var(--bg2);color:var(--text2);
+  border:1.5px solid transparent;border-radius:8px;
+  font-size:12px;font-weight:500;text-align:center;outline:none;padding:0 6px;
+  -moz-appearance:textfield;transition:border-color .12s,color .12s;
 }
 #zoom-input::-webkit-outer-spin-button,
 #zoom-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#zoom-input:hover{border-color:var(--border2);color:var(--text1)}
 #zoom-input:focus{border-color:var(--accent);color:var(--accent)}
 
 /* ── Board ── */
@@ -520,15 +527,15 @@ body{background:var(--bg0);color:var(--text1)}
       <input id="zoom-input" type="number" value="100" min="30" max="800" step="5" data-tip="Zoom % — type a value or press Enter"/>
       <button class="top-btn" id="zoom-reset-btn" data-tip="Reset Zoom to Fit Map">Fit</button>
       <div class="tsep"></div>
-      <button class="top-btn" id="undo-btn" data-tip="Undo Last Action (Ctrl+Z)">↩ Undo</button>
-      <button class="top-btn" id="clear-btn" data-tip="Clear the Entire Board">🗑 Clear</button>
+      <button class="top-btn" id="undo-btn" data-tip="Undo Last Action (Ctrl+Z)">Undo</button>
+      <button class="top-btn" id="clear-btn" data-tip="Clear the Entire Board">Clear</button>
       <div class="tsep"></div>
-      <button class="top-btn" id="share-btn" data-tip="Copy Shareable Link">🔗 Share</button>
-      <button class="top-btn" id="export-btn" data-tip="Export Board as PNG">📷 Export PNG</button>
+      <button class="top-btn" id="share-btn" data-tip="Copy Shareable Link">Share</button>
+      <button class="top-btn" id="export-btn" data-tip="Export Board as PNG">Export</button>
       <div class="tsep"></div>
-      <button class="top-btn" id="save-btn" data-tip="Save to Library">💾 Save</button>
-      <button class="top-btn" id="new-btn" data-tip="Start a New Board">＋ New</button>
-      <button class="top-btn" id="library-btn" data-tip="Browse Saved Strats">📚 Library</button>
+      <button class="top-btn" id="save-btn" data-tip="Save to Library">Save</button>
+      <button class="top-btn" id="new-btn" data-tip="Start a New Board">New</button>
+      <button class="top-btn" id="library-btn" data-tip="Browse Saved Strats">Library</button>
     </div>
 
     <!-- Canvas + right sidebar -->
@@ -871,18 +878,28 @@ function drawEl(el,sel){
     const baseFontSize=el.fontSize||14;
     const fs=Math.max(6,baseFontSize*vz);
     ctx.font=`500 ${fs}px sans-serif`; ctx.textAlign='left'; ctx.textBaseline='top';
-    const tw=ctx.measureText(el.text).width;
-    const bw=tw+8,bh=fs+8;
-    ctx.fillStyle='rgba(0,0,0,0.68)';
-    ctx.beginPath(); ctx.roundRect(s.x-2,s.y-2,bw,bh,3); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.fillText(el.text,s.x+2,s.y+2);
+    const lineH=fs*1.35;
+    const PAD=6;
+    // Compute box width: if el.width set, use it scaled; else auto
+    const maxInnerW = el.width ? el.width*vz : null;
+    const lines = wrapTextLines(ctx, el.text, maxInnerW);
+    const innerW = maxInnerW || Math.max(...lines.map(l=>ctx.measureText(l).width));
+    const bw = innerW + PAD*2;
+    const bh = lines.length*lineH + PAD*1.5;
+    // Background
+    ctx.fillStyle='rgba(0,0,0,0.72)';
+    ctx.beginPath(); ctx.roundRect(s.x,s.y,bw,bh,4); ctx.fill();
+    // Text lines
+    ctx.fillStyle='#fff';
+    lines.forEach((ln,i)=>ctx.fillText(ln, s.x+PAD, s.y+PAD*0.75+i*lineH));
     if(sel){
       ctx.strokeStyle='#e8c840';ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.roundRect(s.x-3,s.y-3,bw+2,bh+2,3); ctx.stroke();
-      const hx=s.x+bw-1,hy=s.y+bh-1,hr=6;
+      ctx.beginPath(); ctx.roundRect(s.x-2,s.y-2,bw+4,bh+4,5); ctx.stroke();
+      // Resize handle — bottom-right
+      const hx=s.x+bw, hy=s.y+bh, hr=7;
       ctx.fillStyle='#e8c840'; ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#000'; ctx.font=`bold 9px sans-serif`;
-      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⤢',hx,hy);
+      ctx.fillStyle='#111'; ctx.font=`bold 9px sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('↔',hx,hy);
     }
   }
   ctx.restore();
@@ -1026,6 +1043,22 @@ function drawNadeIcon(sx,sy,r,sel){
   ctx.restore();
 }
 
+/* ── Word-wrap helper ─────────────────────── */
+function wrapTextLines(ctx, text, maxW){
+  if(!maxW) return [text]; // no wrap constraint
+  const words=text.split(' ');
+  const lines=[];
+  let cur='';
+  for(const w of words){
+    const test=cur?cur+' '+w:w;
+    if(ctx.measureText(test).width>maxW && cur){
+      lines.push(cur); cur=w;
+    } else { cur=test; }
+  }
+  if(cur) lines.push(cur);
+  return lines.length?lines:[text];
+}
+
 /* ═══════════════════════════════════════════
    HIT TESTING
 ═══════════════════════════════════════════ */
@@ -1052,8 +1085,11 @@ function hitTest(spos){
       const s=toScreen(el.x,el.y);
       const fs=Math.max(6,(el.fontSize||14)*vz);
       ctx.font=`500 ${fs}px sans-serif`;
-      const tw=ctx.measureText(el.text).width;
-      if(spos.x>=s.x-5&&spos.x<=s.x+tw+10&&spos.y>=s.y-5&&spos.y<=s.y+fs+10) return el;
+      const maxInnerW=el.width?el.width*vz:null;
+      const lines=wrapTextLines(ctx,el.text,maxInnerW);
+      const innerW=maxInnerW||Math.max(...lines.map(l=>ctx.measureText(l).width));
+      const bw=innerW+12, bh=lines.length*fs*1.35+9;
+      if(spos.x>=s.x-5&&spos.x<=s.x+bw+5&&spos.y>=s.y-5&&spos.y<=s.y+bh+5) return el;
     } else if(el.type==='path'){
       const stol=10/vz;
       for(let j=0;j<el.points.length-1;j++)
@@ -1109,6 +1145,8 @@ function updateSidebar(el){
     h=`<div class="si-row">Text: <span>${el.text.slice(0,18)}</span></div>`;
     h+=`<div style="margin-top:6px;font-size:10px;color:var(--text3);margin-bottom:4px">Font size: <span id="fs-val">${fs}px</span></div>`;
     h+=`<input type="range" id="fs-slider" min="8" max="72" step="1" value="${fs}" style="width:100%;accent-color:var(--accent);margin-bottom:6px">`;
+    h+=`<div style="font-size:10px;color:var(--text3);margin-bottom:4px">Width: <span id="fw-val">${el.width?Math.round(el.width)+'px':'auto'}</span></div>`;
+    h+=`<button class="del-btn" id="reset-width-btn" style="background:#0a1e10;color:#60cc80;border-color:#1a4a2a;margin-bottom:4px">↺ Reset width</button>`;
     h+=`<button class="del-btn" id="edit-text-btn" style="background:#0e1e30;color:#60aaff;border-color:#1a3a5a;margin-bottom:4px">✏ Edit text</button>`;
   }
   h+='<button class="del-btn" id="del-btn">🗑 Delete selected</button>';
@@ -1125,6 +1163,14 @@ function updateSidebar(el){
       document.getElementById('fs-val').textContent=fsSlider.value+'px';
       render();
     });
+  }
+  const resetWBtn=document.getElementById('reset-width-btn');
+  if(resetWBtn){
+    resetWBtn.onclick=()=>{
+      if(!selectedEl||selectedEl.type!=='text') return;
+      pushUndo(); selectedEl.width=null;
+      updateSidebar(selectedEl); render();
+    };
   }
   const editBtn=document.getElementById('edit-text-btn');
   if(editBtn){
@@ -1278,8 +1324,12 @@ function onDown(e){
     const s=toScreen(selectedEl.x,selectedEl.y);
     const fs=Math.max(6,(selectedEl.fontSize||14)*vz);
     ctx.font=`500 ${fs}px sans-serif`;
-    const tw=ctx.measureText(selectedEl.text).width;
-    const hx=s.x+tw+6, hy=s.y+fs+5;
+    const maxInnerW=selectedEl.width?selectedEl.width*vz:null;
+    const lines=wrapTextLines(ctx,selectedEl.text,maxInnerW);
+    const innerW=maxInnerW||Math.max(...lines.map(l=>ctx.measureText(l).width));
+    const bw=innerW+12;
+    const bh=lines.length*fs*1.35+9;
+    const hx=s.x+bw, hy=s.y+bh;
     if(Math.hypot(spos.x-hx,spos.y-hy)<12){
       isResizingText=true; resizeEl=selectedEl; render(); return;
     }
@@ -1301,7 +1351,7 @@ function onDown(e){
     elements.push({type:currentTool,x:wpos.x,y:wpos.y,r});render();
   } else if(currentTool==='text'){
     const txt=prompt('Label text:');
-    if(txt&&txt.trim()){pushUndo();elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim(),fontSize:14});render();}
+    if(txt&&txt.trim()){pushUndo();elements.push({type:'text',x:wpos.x,y:wpos.y,text:txt.trim(),fontSize:14,width:null});render();}
   } else if(currentTool==='waypoint'){
     pushUndo();
     // Find the next available number for this color by looking at existing elements
@@ -1327,11 +1377,11 @@ function onMove(e){
   const wpos=toWorld(spos.x,spos.y);
   if(isResizingText&&resizeEl){
     const s=toScreen(resizeEl.x,resizeEl.y);
-    const dx=Math.max(20,spos.x-s.x);
-    // measure text at base size 12 to get reference width
-    ctx.font=`500 12px sans-serif`;
-    const baseW=Math.max(20,ctx.measureText(resizeEl.text).width);
-    resizeEl.fontSize=Math.max(8,Math.min(72,Math.round((dx/baseW)*12)));
+    // dx from text origin to mouse = desired box screen width
+    const screenW=Math.max(30, spos.x-s.x);
+    // Convert to world px (divide by vz) — subtract padding
+    const innerW=Math.max(20, (screenW-12)/vz);
+    resizeEl.width=innerW; // world pixels, controls word-wrap
     render(); return;
   }
   if(isPanning&&panStart){vx=panOrigin.x+(spos.x-panStart.x);vy=panOrigin.y+(spos.y-panStart.y);render();return;}
