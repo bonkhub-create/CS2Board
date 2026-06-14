@@ -1434,8 +1434,13 @@ function updateMobSelSheet(){
    Long-press canvas = select & show bottom sheet
 ═══════════════════════════════════════════ */
 let touchPanStart=null,touchPanOrigin=null;
-let pinchStartDist=0,pinchStartZ=0,pinchMidX=0,pinchMidY=0,pinchPanOrigin=null;
+// Pinch state: we track both start snapshot AND previous-frame midpoint+dist for smooth pan+zoom
+let pinchActive=false;
+let pinchStartDist=0,pinchStartZ=0;
+let pinchPrevMidX=0,pinchPrevMidY=0,pinchPrevDist=0;
+let pinchPanOrigin=null;
 let touchDrawing=false;
+let isPinching=false; // blocks element placement if a second finger arrives mid-gesture
 let longPressTimer=null;
 let touchStartPos=null;
 let isResizingText=false,resizeEl=null;
@@ -1449,19 +1454,32 @@ function touchMid(t,r){ return{x:(t[0].clientX+t[1].clientX)/2-r.left,y:(t[0].cl
 cv.addEventListener('touchstart',e=>{
   e.preventDefault();
   const r=cv.getBoundingClientRect();
-  if(e.touches.length===2){
-    // Cancel any pending single-touch operations
-    clearTimeout(longPressTimer); touchPanStart=null; touchDrawing=false;
+
+  if(e.touches.length>=2){
+    // Second finger landed — cancel everything single-touch was doing
+    clearTimeout(longPressTimer);
+    touchPanStart=null;
+    touchDrawing=false;
+    isPinching=true;
     if(isDrawing){ isDrawing=false; drawPath=[]; render(); }
-    // Pinch-zoom
+
+    // Deselect so the selection highlight doesn't linger during pan/zoom
+    selectedEl=null; updateSidebar(null); render();
+
+    // Snapshot pinch start
+    pinchActive=true;
     pinchStartDist=touchDist(e.touches);
     pinchStartZ=vz;
-    const m=touchMid(e.touches,r);
-    pinchMidX=m.x; pinchMidY=m.y;
     pinchPanOrigin={x:vx,y:vy};
+    const m=touchMid(e.touches,r);
+    pinchPrevMidX=m.x; pinchPrevMidY=m.y;
+    pinchPrevDist=pinchStartDist;
     return;
   }
+
   if(e.touches.length===1){
+    isPinching=false;
+    pinchActive=false;
     const t=e.touches[0];
     const spos={x:t.clientX-r.left,y:t.clientY-r.top};
     touchStartPos=spos;
@@ -1469,10 +1487,8 @@ cv.addEventListener('touchstart',e=>{
       touchDrawing=true;
       onDown({button:0,clientX:t.clientX,clientY:t.clientY,touches:e.touches});
     } else {
-      // Pan mode — also set up long-press to select
       touchPanStart=spos; touchPanOrigin={x:vx,y:vy};
       longPressTimer=setTimeout(()=>{
-        // Long press = select element
         const hit=hitTest(spos);
         if(hit){
           selectedEl=hit; updateSidebar(hit); updateMobSelSheet(); render();
@@ -1487,21 +1503,34 @@ cv.addEventListener('touchstart',e=>{
 cv.addEventListener('touchmove',e=>{
   e.preventDefault();
   const r=cv.getBoundingClientRect();
-  if(e.touches.length===2){
+
+  if(e.touches.length>=2&&pinchActive){
+    const m=touchMid(e.touches,r);
     const d=touchDist(e.touches);
-    const scale=d/pinchStartDist;
-    const newZ=Math.min(MAX_Z,Math.max(MIN_Z,pinchStartZ*scale));
-    const ratio=newZ/pinchStartZ;
-    vx=pinchMidX-(pinchMidX-pinchPanOrigin.x)*ratio;
-    vy=pinchMidY-(pinchMidY-pinchPanOrigin.y)*ratio;
+
+    // Pan: how much has the midpoint moved since last frame?
+    const panDx=m.x-pinchPrevMidX;
+    const panDy=m.y-pinchPrevMidY;
+
+    // Zoom: scale relative to last frame's distance, centred on current midpoint
+    const scaleStep=d/pinchPrevDist;
+    const newZ=Math.min(MAX_Z,Math.max(MIN_Z,vz*scaleStep));
+
+    // Apply zoom centred on midpoint, then apply pan delta
+    vx=m.x-(m.x-vx)*(newZ/vz)+panDx;
+    vy=m.y-(m.y-vy)*(newZ/vz)+panDy;
     vz=newZ;
+
+    // Save for next frame
+    pinchPrevMidX=m.x; pinchPrevMidY=m.y; pinchPrevDist=d;
+
     updateZoomUI(); render();
     return;
   }
-  if(e.touches.length===1){
+
+  if(e.touches.length===1&&!isPinching){
     const t=e.touches[0];
     const spos={x:t.clientX-r.left,y:t.clientY-r.top};
-    // Cancel long-press if moved more than 8px
     if(touchStartPos&&Math.hypot(spos.x-touchStartPos.x,spos.y-touchStartPos.y)>8){
       clearTimeout(longPressTimer);
     }
@@ -1518,9 +1547,16 @@ cv.addEventListener('touchmove',e=>{
 cv.addEventListener('touchend',e=>{
   e.preventDefault();
   clearTimeout(longPressTimer);
-  if(touchDrawing){ onUp({}); touchDrawing=false; }
-  touchPanStart=null; touchStartPos=null;
-  if(e.touches.length<2){ pinchStartDist=0; }
+
+  if(e.touches.length<2){
+    pinchActive=false;
+    // Keep isPinching=true until ALL fingers lift so stray single-touch
+    // at the end of a pinch can't accidentally place an element
+    if(e.touches.length===0) isPinching=false;
+  }
+
+  if(touchDrawing&&!isPinching){ onUp({}); touchDrawing=false; }
+  if(e.touches.length===0){ touchPanStart=null; touchStartPos=null; }
 },{passive:false});
 
 /* ═══════════════════════════════════════════
