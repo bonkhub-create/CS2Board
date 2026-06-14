@@ -1336,6 +1336,8 @@ function onDown(e){
       else dragOffset={x:wpos.x-hit.x,y:wpos.y-hit.y};
       updateSidebar(hit);
     } else {
+      // Clicked empty space — deselect anything and pan
+      selectedEl=null; updateSidebar(null);
       isPanning=true; panStart=spos; panOrigin={x:vx,y:vy};
     }
     render(); return;
