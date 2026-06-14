@@ -230,6 +230,114 @@ body{background:var(--bg0);color:var(--text1)}
 .conflict-btn.keep:hover{background:#0e2a0e}
 .conflict-btn.replace:hover{background:#2a0e0e}
 #import-file{display:none}
+
+/* ══════════════════════════════════════════
+   MOBILE  (≤ 768px)
+══════════════════════════════════════════ */
+@media (max-width: 768px){
+
+  /* Hide desktop elements */
+  #toolpanel { display:none; }
+  #sidebar   { display:none; }
+  #topbar    { display:none; }
+  #notes-bar { display:none; }
+
+  /* App becomes column: canvas fills screen, mobile bar at bottom */
+  #app    { flex-direction:column; }
+  #main   { flex:1; overflow:hidden; }
+  #board  { flex:1; overflow:hidden; }
+  #cvwrap { flex:1; }
+
+  /* ── Mobile top strip: name + map ── */
+  #mob-top{
+    display:flex; align-items:center; gap:6px;
+    padding:6px 10px; background:var(--bg1);
+    border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap;
+  }
+  #mob-sname{
+    flex:1; min-width:0;
+    background:var(--bg2); color:var(--accent);
+    border:1px solid #2e2a00; border-radius:7px;
+    padding:5px 8px; font-size:13px; font-weight:600;
+    height:34px; outline:none;
+  }
+  #mob-map{
+    background:var(--bg2); color:var(--text1);
+    border:1px solid var(--border2); border-radius:7px;
+    padding:5px 8px; font-size:12px; cursor:pointer; height:34px; outline:none;
+  }
+
+  /* ── Mobile bottom toolbar ── */
+  #mob-bar{
+    display:flex; align-items:center; justify-content:space-around;
+    padding:6px 4px; background:var(--bg1);
+    border-top:1px solid var(--border); flex-shrink:0;
+    gap:2px; flex-wrap:wrap;
+  }
+  .mb{
+    width:44px; height:44px; border-radius:8px;
+    border:1.5px solid transparent; background:var(--bg2);
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-size:18px; user-select:none; color:var(--text2);
+    transition:background .1s,border-color .1s; flex-shrink:0;
+  }
+  .mb:hover,.mb:active{ background:var(--bg3); border-color:var(--border2); }
+  .mb.active{ border-color:var(--accent); background:var(--accent-dim); color:var(--accent); }
+  .mb svg{ pointer-events:none; }
+
+  /* ── Mobile notes overlay ── */
+  #mob-notes-overlay{
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.7); z-index:400;
+    align-items:flex-end;
+  }
+  #mob-notes-overlay.open{ display:flex; }
+  #mob-notes-sheet{
+    background:var(--bg1); border-radius:14px 14px 0 0;
+    padding:16px; width:100%; max-height:60vh;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  #mob-notes-sheet h3{
+    font-size:13px; font-weight:600; color:var(--text1);
+  }
+  #mob-notes-ta{
+    width:100%; background:var(--bg2); color:var(--text1);
+    border:1px solid var(--border2); border-radius:8px;
+    padding:8px; font-size:13px; resize:none; font-family:inherit;
+    min-height:120px; outline:none; line-height:1.5; flex:1;
+  }
+  .mob-close-btn{
+    align-self:flex-end;
+    background:none; border:none; color:var(--text3);
+    font-size:22px; cursor:pointer; line-height:1;
+  }
+
+  /* ── Mobile color picker overlay ── */
+  #mob-color-overlay{
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.7); z-index:400;
+    align-items:flex-end;
+  }
+  #mob-color-overlay.open{ display:flex; }
+  #mob-color-sheet{
+    background:var(--bg1); border-radius:14px 14px 0 0;
+    padding:16px; width:100%; display:flex; flex-direction:column; gap:12px;
+  }
+  #mob-color-sheet h3{ font-size:13px; font-weight:600; color:var(--text1); }
+  .mob-color-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .mob-dot{
+    width:32px; height:32px; border-radius:50%;
+    border:3px solid transparent; cursor:pointer; flex-shrink:0;
+    transition:transform .1s,border-color .1s;
+  }
+  .mob-dot.active{ border-color:#fff; transform:scale(1.15); }
+}
+
+/* Hide mobile elements on desktop */
+#mob-top, #mob-bar, #mob-notes-overlay, #mob-color-overlay { display:none; }
+@media (max-width:768px){
+  #mob-top, #mob-bar { display:flex; }
+}
 </style>
 </head>
 <body>
@@ -1496,6 +1604,203 @@ resize();
 loadMap(currentMap);
 loadFromURL();
 syncNotesBar();
+
+/* ══════════════════════════════════════════
+   MOBILE WIRING
+══════════════════════════════════════════ */
+(function(){
+  const isMobile = () => window.innerWidth <= 768;
+
+  // Sync mob-sname ↔ desktop sname
+  const mobSname = document.getElementById('mob-sname');
+  const deskSname = document.getElementById('sname');
+  mobSname.addEventListener('input', () => { deskSname.value = mobSname.value; });
+  deskSname.addEventListener('input', () => { mobSname.value = deskSname.value; });
+
+  // Sync mob-map ↔ desktop map-sel
+  const mobMap = document.getElementById('mob-map');
+  const deskMap = document.getElementById('map-sel');
+  mobMap.addEventListener('change', () => {
+    deskMap.value = mobMap.value;
+    currentMap = mobMap.value;
+    mapLoaded = false;
+    loadMap(currentMap);
+  });
+  deskMap.addEventListener('change', () => { mobMap.value = deskMap.value; });
+
+  // Mobile tool buttons
+  document.querySelectorAll('[data-mob-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-mob-tool]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTool = btn.dataset.mobTool;
+    });
+  });
+
+  // Mobile undo
+  document.getElementById('mob-undo-btn').addEventListener('click', undo);
+
+  // Mobile library
+  document.getElementById('mob-lib-btn').addEventListener('click', openLibrary);
+
+  // Notes sheet
+  const notesOverlay = document.getElementById('mob-notes-overlay');
+  const mobNotesTa   = document.getElementById('mob-notes-ta');
+  const deskNotes    = document.getElementById('notes');
+
+  document.getElementById('mob-notes-btn').addEventListener('click', () => {
+    mobNotesTa.value = deskNotes.value;
+    notesOverlay.classList.add('open');
+    setTimeout(() => mobNotesTa.focus(), 100);
+  });
+  function closeMobNotes() {
+    deskNotes.value = mobNotesTa.value;
+    syncNotesBar();
+    notesOverlay.classList.remove('open');
+  }
+  document.getElementById('mob-notes-close').addEventListener('click', closeMobNotes);
+  document.getElementById('mob-notes-done').addEventListener('click', closeMobNotes);
+  notesOverlay.addEventListener('click', e => { if(e.target === notesOverlay) closeMobNotes(); });
+
+  // Color sheet
+  const colorOverlay = document.getElementById('mob-color-overlay');
+  document.getElementById('mob-color-btn').addEventListener('click', () => colorOverlay.classList.add('open'));
+  function closeMobColor() { colorOverlay.classList.remove('open'); }
+  document.getElementById('mob-color-close').addEventListener('click', closeMobColor);
+  document.getElementById('mob-color-done').addEventListener('click', closeMobColor);
+  colorOverlay.addEventListener('click', e => { if(e.target === colorOverlay) closeMobColor(); });
+
+  // Mobile player color dots
+  document.querySelectorAll('#mob-player-colors .mob-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll('#mob-player-colors .mob-dot').forEach(d => { d.style.borderColor='transparent'; d.classList.remove('active'); });
+      dot.style.borderColor = '#fff'; dot.classList.add('active');
+      setPlayerColor(dot.dataset.pcolor);
+      // also sync desktop picker
+      document.querySelectorAll('.pc-global').forEach(d => { d.style.borderColor='transparent'; d.classList.remove('active'); });
+      const match = document.querySelector(`.pc-global[data-pcolor="${dot.dataset.pcolor}"]`);
+      if(match){ match.style.borderColor='#fff'; match.classList.add('active'); }
+    });
+  });
+
+  // Mobile line color dots
+  document.querySelectorAll('#mob-line-colors .mob-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll('#mob-line-colors .mob-dot').forEach(d => { d.style.borderColor='transparent'; d.classList.remove('active'); });
+      dot.style.borderColor = '#fff'; dot.classList.add('active');
+      currentColor = dot.dataset.color;
+      // sync desktop
+      document.querySelectorAll('.c-dot').forEach(d => d.classList.remove('active'));
+      const match = document.querySelector(`.c-dot[data-color="${dot.dataset.color}"]`);
+      if(match) match.classList.add('active');
+    });
+  });
+
+  // On resize, keep things consistent
+  window.addEventListener('resize', () => {
+    if(isMobile()){
+      mobSname.value = deskSname.value;
+      mobMap.value   = deskMap.value;
+    }
+  });
+})();
+
 </script>
+
+<!-- ══ MOBILE UI ══ -->
+<!-- Top strip -->
+<div id="mob-top">
+  <input id="mob-sname" placeholder="Strategy name..." value="New Strategy"/>
+  <select id="mob-map">
+    <option value="de_mirage">Mirage</option>
+    <option value="de_inferno">Inferno</option>
+    <option value="de_dust2">Dust 2</option>
+    <option value="de_nuke">Nuke</option>
+    <option value="de_overpass">Overpass</option>
+    <option value="de_anubis">Anubis</option>
+    <option value="de_ancient">Ancient</option>
+    <option value="de_vertigo">Vertigo</option>
+    <option value="de_train">Train</option>
+  </select>
+</div>
+
+<!-- Bottom toolbar -->
+<div id="mob-bar">
+  <!-- Drawing tools -->
+  <div class="mb active" data-mob-tool="draw" style="padding:4px" data-tip="Draw Path">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.5" stroke-linecap="round"><path d="M4 20 C6 16 8 10 12 8 C16 6 18 10 20 8"/><line x1="3" y1="20" x2="6" y2="20" stroke-width="1.2"/></svg>
+  </div>
+  <div class="mb" data-mob-tool="arrow" style="padding:4px" data-tip="Arrow">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18 C7 14 10 10 16 8"/><polyline points="11,7 17,7 17,13"/></svg>
+  </div>
+  <div class="mb" data-mob-tool="teammate" style="padding:4px" data-tip="Teammate">
+    <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" id="mob-teammate-fill" fill="#0e2f50" stroke="#4a9ed8" stroke-width="2"/><circle cx="12" cy="10" r="3.5" fill="#4a9ed8" opacity="0.9"/><path d="M5.5 19.5 C5.5 15.5 8.5 13 12 13 C15.5 13 18.5 15.5 18.5 19.5" fill="#4a9ed8" opacity="0.9"/></svg>
+  </div>
+  <div class="mb" data-mob-tool="enemy" style="padding:4px" data-tip="Enemy">
+    <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" fill="#1e1e1e" stroke="#666" stroke-width="2"/><circle cx="12" cy="10" r="3.5" fill="#666" opacity="0.9"/><path d="M5.5 19.5 C5.5 15.5 8.5 13 12 13 C15.5 13 18.5 15.5 18.5 19.5" fill="#666" opacity="0.9"/></svg>
+  </div>
+  <!-- Utility -->
+  <div class="mb" data-mob-tool="smokezone" style="padding:4px" data-tip="Smoke">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="11" width="6" height="8" rx="1.2"/><rect x="10.2" y="8.5" width="3.6" height="3" rx="0.8"/><circle cx="8.5" cy="10" r="1.2"/><ellipse cx="12" cy="5.5" rx="2.2" ry="1.8"/><ellipse cx="15.2" cy="6.5" rx="1.5" ry="1.3"/><ellipse cx="9" cy="6.5" rx="1.5" ry="1.3"/></svg>
+  </div>
+  <div class="mb" data-mob-tool="molotovzone" style="padding:4px" data-tip="Molotov">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.5" stroke-linecap="round"><path d="M12 21 C8 21 6 18.5 6 16 C6 13 8 11.5 9 9.5 C9.5 11.5 10 12 11 12 C10 10 10.5 7 12 4 C12 7 13.5 8.5 14.5 10 C16 8.5 16 6.5 15.5 5 C17.5 7 18 10 18 12.5 C18 16 16.5 19 14 20.5 C14.5 19 14 17.5 13 17 C13.5 18.5 13 20 12 21Z"/></svg>
+  </div>
+  <div class="mb" data-mob-tool="flash" style="font-size:20px" data-tip="Flash">💥</div>
+  <div class="mb" data-mob-tool="nade" style="padding:4px" data-tip="HE">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.5" stroke-linecap="round"><ellipse cx="12" cy="14.5" rx="5.5" ry="6"/><line x1="6.5" y1="14.5" x2="17.5" y2="14.5" stroke-width="1"/><line x1="12" y1="8.5" x2="12" y2="20.5" stroke-width="1"/><rect x="10.3" y="4" width="3.4" height="3.5" rx="1"/><circle cx="9" cy="5.5" r="1.2"/><line x1="10.3" y1="5.5" x2="13.7" y2="5.5"/></svg>
+  </div>
+  <div class="mb" data-mob-tool="waypoint" style="font-size:14px;font-weight:700;color:var(--accent)" data-tip="Waypoint">①</div>
+  <!-- Actions -->
+  <div class="mb" id="mob-color-btn" style="font-size:18px" data-tip="Colors">🎨</div>
+  <div class="mb" id="mob-notes-btn" style="font-size:18px" data-tip="Notes">📝</div>
+  <div class="mb" id="mob-undo-btn" style="font-size:18px" data-tip="Undo">↩️</div>
+  <div class="mb" id="mob-lib-btn" style="font-size:18px" data-tip="Library">📚</div>
+</div>
+
+<!-- Notes sheet -->
+<div id="mob-notes-overlay">
+  <div id="mob-notes-sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Notes</h3>
+      <button class="mob-close-btn" id="mob-notes-close">×</button>
+    </div>
+    <textarea id="mob-notes-ta" placeholder="Describe the strategy..."></textarea>
+    <button class="top-btn" id="mob-notes-done" style="width:100%;justify-content:center">Done</button>
+  </div>
+</div>
+
+<!-- Color picker sheet -->
+<div id="mob-color-overlay">
+  <div id="mob-color-sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Colors</h3>
+      <button class="mob-close-btn" id="mob-color-close">×</button>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Player Color</div>
+      <div class="mob-color-row" id="mob-player-colors">
+        <div class="mob-dot active" data-pcolor="blue"   style="background:#4a9ed8;border-color:#fff"></div>
+        <div class="mob-dot" data-pcolor="orange" style="background:#e05500"></div>
+        <div class="mob-dot" data-pcolor="purple" style="background:#9955dd"></div>
+        <div class="mob-dot" data-pcolor="green"  style="background:#33bb44"></div>
+        <div class="mob-dot" data-pcolor="yellow" style="background:#ccaa00"></div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Line Color</div>
+      <div class="mob-color-row" id="mob-line-colors">
+        <div class="mob-dot active" data-color="#60aaff" style="background:#60aaff;border-color:#fff"></div>
+        <div class="mob-dot" data-color="#e8c840" style="background:#e8c840"></div>
+        <div class="mob-dot" data-color="#60cc60" style="background:#60cc60"></div>
+        <div class="mob-dot" data-color="#e06040" style="background:#e06040"></div>
+        <div class="mob-dot" data-color="#cc60cc" style="background:#cc60cc"></div>
+        <div class="mob-dot" data-color="#ffffff" style="background:#fff;border-color:#444"></div>
+      </div>
+    </div>
+    <button class="top-btn" id="mob-color-done" style="width:100%;justify-content:center">Done</button>
+  </div>
+</div>
+
 </body>
 </html>
