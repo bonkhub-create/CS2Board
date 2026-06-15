@@ -1289,9 +1289,11 @@ function drawFlamePath(cx,cy,size){
 }
 
 function drawIcon(icon,sx,sy,sel){
-  const baseR=Math.max(10,16*Math.min(vz,2));
-  if(icon==='bomb'){ drawBombIcon(sx,sy,baseR*0.75,sel); return; }
-  if(icon==='nade'){ drawNadeIcon(sx,sy,baseR,sel); return; }
+  // Player-scale radius — same formula as player dot so icons sit at 1:1 map scale
+  const r=Math.max(4,8*Math.min(vz,2));
+  const baseR=Math.max(10,16*Math.min(vz,2)); // larger radius for flash fallback only
+  if(icon==='bomb'){ drawBombIcon(sx,sy,r*0.9,sel); return; }
+  if(icon==='nade'){ drawNadeIcon(sx,sy,r,sel); return; }
   if(icon==='sniper'){ drawSniperIcon(sx,sy,sel); return; }
   const EMOJI={flash:'💥'};
   const fs=Math.max(10,16*Math.min(vz,2));
@@ -1335,20 +1337,52 @@ function drawBombIcon(sx,sy,r,sel){
   ctx.restore();
 }
 
-function drawNadeIcon(sx,sy,r,sel){
-  ctx.save();
-  ctx.beginPath(); ctx.ellipse(sx,sy+r*0.05,r*0.72,r*0.85,0,0,Math.PI*2);
-  ctx.fillStyle='#2a4a1a'; ctx.fill();
-  ctx.strokeStyle='#7acc55'; ctx.lineWidth=1.3; ctx.stroke();
-  ctx.strokeStyle='rgba(80,160,40,0.5)'; ctx.lineWidth=0.8;
-  ctx.beginPath(); ctx.moveTo(sx-r*0.72,sy+r*0.05); ctx.lineTo(sx+r*0.72,sy+r*0.05); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(sx,sy-r*0.8); ctx.lineTo(sx,sy+r*0.9); ctx.stroke();
-  ctx.beginPath(); ctx.roundRect(sx-r*0.22,sy-r*1.1,r*0.44,r*0.35,r*0.1);
-  ctx.fillStyle='#555'; ctx.fill();
-  ctx.strokeStyle='#888'; ctx.lineWidth=1; ctx.stroke();
-  if(sel){ctx.strokeStyle='#e8c840';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,r+4,0,Math.PI*2);ctx.stroke();}
-  ctx.restore();
+// Shared HE grenade draw — works with any canvas context c
+function _drawNade(c,sx,sy,r,sel){
+  c.save();
+  // Body: slightly squashed circle, dark olive green
+  const bodyR=r*0.88;
+  c.beginPath(); c.arc(sx,sy+r*0.05,bodyR,0,Math.PI*2);
+  c.fillStyle='#1e3510'; c.fill();
+  c.strokeStyle='#6abf44'; c.lineWidth=Math.max(1,r*0.18); c.stroke();
+
+  // Segment lines (horizontal + vertical cross) for the classic grenade look
+  c.strokeStyle='rgba(100,180,60,0.45)'; c.lineWidth=Math.max(0.6,r*0.1); c.lineCap='butt';
+  c.beginPath(); c.moveTo(sx-bodyR,sy+r*0.05); c.lineTo(sx+bodyR,sy+r*0.05); c.stroke();
+  c.beginPath(); c.moveTo(sx,sy+r*0.05-bodyR); c.lineTo(sx,sy+r*0.05+bodyR); c.stroke();
+
+  // Highlight glint
+  c.beginPath(); c.arc(sx-r*0.24,sy-r*0.22,r*0.2,0,Math.PI*2);
+  c.fillStyle='rgba(150,220,90,0.13)'; c.fill();
+
+  // Neck between body and handle
+  const neckY=sy+r*0.05-bodyR;
+  c.beginPath(); c.roundRect(sx-r*0.18,neckY-r*0.18,r*0.36,r*0.22,r*0.08);
+  c.fillStyle='#3a5a28'; c.fill();
+  c.strokeStyle='#6abf44'; c.lineWidth=Math.max(0.8,r*0.12); c.stroke();
+
+  // Handle / spoon — rectangle on top
+  const handleY=neckY-r*0.18-r*0.28;
+  c.beginPath(); c.roundRect(sx-r*0.26,handleY,r*0.52,r*0.3,r*0.07);
+  c.fillStyle='#4a6a35'; c.fill();
+  c.strokeStyle='#7acc55'; c.lineWidth=Math.max(0.8,r*0.12); c.stroke();
+
+  // Pin ring — small circle to the left of handle
+  const pinX=sx-r*0.26-r*0.18;
+  const pinY=handleY+r*0.15;
+  c.beginPath(); c.arc(pinX,pinY,r*0.14,0,Math.PI*2);
+  c.strokeStyle='#aaa'; c.lineWidth=Math.max(0.7,r*0.1); c.stroke();
+  // Pin horizontal line
+  c.beginPath(); c.moveTo(pinX+r*0.14,pinY); c.lineTo(sx-r*0.26,pinY);
+  c.strokeStyle='#aaa'; c.lineWidth=Math.max(0.7,r*0.1); c.stroke();
+
+  if(sel){
+    c.strokeStyle='#e8c840'; c.lineWidth=1.5;
+    c.beginPath(); c.arc(sx,sy,r+5,0,Math.PI*2); c.stroke();
+  }
+  c.restore();
 }
+function drawNadeIcon(sx,sy,r,sel){ _drawNade(ctx,sx,sy,r,sel); }
 
 function wrapTextLines(ctx, text, maxW){
   if(!maxW) return [text];
@@ -2275,9 +2309,41 @@ function drawElToCtx(c,el,sel,z){
     c.strokeStyle='#ff7030'; c.lineWidth=1.5; c.stroke(); c.globalAlpha=1;
   } else if(el.type==='icon'){
     const s=toS(el.x,el.y);
-    const fs=Math.max(10,16*Math.min(z,2));
-    c.font=`${fs}px serif`; c.textAlign='center'; c.textBaseline='middle';
-    c.fillText({flash:'💥',bomb:'💣',nade:'💣',sniper:'🎯'}[el.icon]||'?',s.x,s.y);
+    const iconR=Math.max(4,8*Math.min(z,2)); // player-scale radius
+    if(el.icon==='nade'){
+      _drawNade(c,s.x,s.y,iconR,false);
+    } else if(el.icon==='bomb'){
+      // Reuse bomb draw path inlined for export ctx
+      const r=iconR*0.9;
+      c.save();
+      c.beginPath(); c.arc(s.x,s.y+r*0.1,r*0.85,0,Math.PI*2);
+      c.fillStyle='#222'; c.fill(); c.strokeStyle='#888'; c.lineWidth=1.4; c.stroke();
+      c.beginPath(); c.moveTo(s.x,s.y-r*0.85); c.lineTo(s.x,s.y-r*1.4);
+      c.strokeStyle='#aaa'; c.lineWidth=Math.max(1,r*0.12); c.lineCap='round'; c.stroke();
+      c.beginPath(); c.moveTo(s.x,s.y-r*1.4);
+      c.bezierCurveTo(s.x+r*0.4,s.y-r*1.6,s.x+r*0.8,s.y-r*1.3,s.x+r*1.0,s.y-r*1.05);
+      c.strokeStyle='#e8c840'; c.lineWidth=Math.max(1,r*0.1); c.stroke();
+      c.beginPath(); c.arc(s.x+r*1.0,s.y-r*1.05,r*0.2,0,Math.PI*2);
+      c.fillStyle='#ffe060'; c.fill();
+      c.restore();
+    } else if(el.icon==='sniper'){
+      const r=Math.max(4,8*Math.min(z,2));
+      c.save();
+      c.beginPath(); c.arc(s.x,s.y,r,0,Math.PI*2);
+      c.fillStyle='#2e0a0a'; c.fill(); c.strokeStyle='#dd2222'; c.lineWidth=1.5; c.stroke();
+      const lw=r*0.55;
+      c.strokeStyle='rgba(220,60,60,0.9)'; c.lineWidth=Math.max(0.8,r*0.18); c.lineCap='round';
+      c.beginPath(); c.moveTo(s.x-lw,s.y); c.lineTo(s.x+lw,s.y); c.stroke();
+      c.beginPath(); c.moveTo(s.x,s.y-lw); c.lineTo(s.x,s.y+lw); c.stroke();
+      c.beginPath(); c.arc(s.x,s.y,Math.max(1,r*0.22),0,Math.PI*2);
+      c.fillStyle='#dd2222'; c.fill();
+      c.restore();
+    } else {
+      // flash — emoji fallback is fine for flash
+      const fs=Math.max(10,16*Math.min(z,2));
+      c.font=`${fs}px serif`; c.textAlign='center'; c.textBaseline='middle';
+      c.fillText('💥',s.x,s.y);
+    }
   } else if(el.type==='path'){
     if(el.points.length<2) return;
     c.strokeStyle=el.color||'#60aaff'; c.lineWidth=2.2; c.lineCap='round'; c.lineJoin='round';
