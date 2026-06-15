@@ -2090,172 +2090,140 @@ function doExport(){
   // Restore viewport
   vx=savedVx; vy=savedVy; vz=savedVz;
 
-  // ── Compose final image: notes panel (if any) left, map right ──
-  const NOTES_W=340, PAD=24;
-  const totalW=notesHasContent?mapW+NOTES_W:mapW;
-  const totalH=mapH;
-  const offscreen=document.createElement('canvas');
-  offscreen.width=totalW; offscreen.height=totalH;
-  const oc=offscreen.getContext('2d');
-  const mapOffX=notesHasContent?NOTES_W:0;
-  oc.drawImage(offMap,mapOffX,0);
+  // ── Notes panel: measure content height, then compose ──────────────────────
+  const NOTES_W=320, PAD=20;
+  const HEADER_H=PAD+60; // top pad + title + subtitle + divider
 
-  if(notesHasContent){
-    oc.fillStyle='#13161f'; oc.fillRect(0,0,NOTES_W,totalH);
-    oc.fillStyle='#2a2f42'; oc.fillRect(NOTES_W-1,0,1,totalH);
-
-    // Header: strat name + map name
-    oc.textAlign='left'; oc.textBaseline='top';
-    oc.fillStyle='#e8c840'; oc.font='bold 16px -apple-system,sans-serif';
-    oc.fillText(stratName,PAD,PAD);
-    oc.fillStyle='#5a6080'; oc.font='12px -apple-system,sans-serif';
-    oc.fillText(mapName,PAD,PAD+22);
-    oc.fillStyle='#2a2f42'; oc.fillRect(PAD,PAD+40,NOTES_W-PAD*2,1);
-
-    // Walk the editor DOM and render rich text to canvas
-    const maxW=NOTES_W-PAD*2;
-    let y=PAD+52;
-
-    // Build a flat list of {text, fontSize, bold, italic, underline, listDepth, listType, listIndex}
-    // by walking the contenteditable tree
+  // Walk the editor DOM into a flat run list
+  function collectNotesRuns(){
     const runs=[];
-    function collectRuns(node, styles, listCtx){
+    function walk(node,styles,lCtx){
       if(node.nodeType===Node.TEXT_NODE){
-        const txt=node.textContent.replace(/\u200B/g,''); // strip zero-width spaces
-        if(txt) runs.push({...styles, text:txt, ...listCtx});
+        const txt=node.textContent.replace(/\u200B/g,'');
+        if(txt) runs.push({...styles,text:txt,...lCtx});
         return;
       }
       if(node.nodeType!==Node.ELEMENT_NODE) return;
       const tag=node.tagName.toLowerCase();
-      // Inherit + override styles from this element
       let s={...styles};
-      const inlineFs=node.style&&node.style.fontSize;
-      if(inlineFs) s.fontSize=parseFloat(inlineFs)||s.fontSize;
-      if(tag==='b'||tag==='strong'||node.style.fontWeight==='bold'||node.style.fontWeight>='600') s.bold=true;
+      const ifs=node.style&&node.style.fontSize;
+      if(ifs) s.fontSize=Math.max(14,parseFloat(ifs)||s.fontSize);
+      if(tag==='b'||tag==='strong'||(node.style.fontWeight&&(node.style.fontWeight==='bold'||parseInt(node.style.fontWeight)>=600))) s.bold=true;
       if(tag==='i'||tag==='em'||node.style.fontStyle==='italic') s.italic=true;
       if(tag==='u'||(node.style.textDecoration&&node.style.textDecoration.includes('underline'))) s.underline=true;
-
-      // Block-level: flush a line break signal before/after
-      const block=['p','div','br','li','ul','ol','h1','h2','h3','h4','blockquote'];
-      const isBlock=block.includes(tag);
-
-      let lCtx={...listCtx};
-      if(tag==='ul') lCtx={listType:'ul',listDepth:(listCtx.listDepth||0)+1,listIndex:0};
-      if(tag==='ol') lCtx={listType:'ol',listDepth:(listCtx.listDepth||0)+1,listIndex:0};
-      if(tag==='li'){
-        lCtx={...lCtx, isListItem:true};
-        listCtx.listIndex=(listCtx.listIndex||0)+1;
-        lCtx.listIndex=listCtx.listIndex;
-      }
-
-      if(tag==='br'){ runs.push({...s,...lCtx,text:'\n'}); return; }
-
-      for(const child of node.childNodes){
-        collectRuns(child,s,lCtx);
-      }
-
-      if(isBlock&&tag!=='br') runs.push({...s,...lCtx,text:'\n'});
+      const isBlock=['p','div','li','ul','ol','h1','h2','h3','h4','blockquote'].includes(tag);
+      let lc={...lCtx};
+      if(tag==='ul') lc={listType:'ul',listDepth:(lCtx.listDepth||0)+1,listIndex:0};
+      if(tag==='ol') lc={listType:'ol',listDepth:(lCtx.listDepth||0)+1,listIndex:0};
+      if(tag==='li'){ lc={...lc,isListItem:true}; lCtx.listIndex=(lCtx.listIndex||0)+1; lc.listIndex=lCtx.listIndex; }
+      if(tag==='br'){ runs.push({...s,...lc,text:'\n'}); return; }
+      for(const child of node.childNodes) walk(child,s,lc);
+      if(isBlock) runs.push({...s,...lc,text:'\n'});
     }
-    collectRuns(getNotesEditor(),{fontSize:14,bold:false,italic:false,underline:false},{listType:null,listDepth:0,listIndex:0,isListItem:false});
+    walk(getNotesEditor(),{fontSize:16,bold:false,italic:false,underline:false},
+         {listType:null,listDepth:0,listIndex:0,isListItem:false});
+    return runs;
+  }
 
-    // Merge consecutive runs into lines, then word-wrap and draw each
-    // First, split runs on \n boundaries into logical lines
+  // Layout engine: measure or draw rich text. Returns the final Y reached.
+  function layoutNotes(c,maxW,startY,doDraw){
+    const runs=collectNotesRuns();
     const logicalLines=[];
-    let curLine=[];
-    for(const run of runs){
-      if(run.text==='\n'){
-        logicalLines.push(curLine);
-        curLine=[];
-      } else {
-        curLine.push(run);
-      }
-    }
-    if(curLine.length) logicalLines.push(curLine);
+    let cur=[];
+    for(const r of runs){ if(r.text==='\n'){logicalLines.push(cur);cur=[];}else cur.push(r); }
+    if(cur.length) logicalLines.push(cur);
 
+    let y=startY;
     for(const line of logicalLines){
-      if(!line.length){ y+=8; continue; } // blank line gap
-
-      // Determine list prefix for this line
-      const firstRun=line[0];
-      let prefix='';
-      let prefixW=0;
-      let indent=0;
-      if(firstRun.isListItem){
-        indent=(firstRun.listDepth||1)*14;
-        if(firstRun.listType==='ul') prefix='• ';
-        else prefix=firstRun.listIndex+'. ';
-        const pfFs=firstRun.fontSize||14;
-        const pfFont=`${pfFs}px -apple-system,sans-serif`;
-        oc.font=pfFont;
-        prefixW=oc.measureText(prefix).width;
+      if(!line.length){ y+=10; continue; }
+      const fr=line[0];
+      let prefix='',prefixW=0,indent=0;
+      if(fr.isListItem){
+        indent=(fr.listDepth||1)*16;
+        prefix=fr.listType==='ul'?'\u2022 ':(fr.listIndex+'. ');
+        c.font=`${fr.fontSize||16}px -apple-system,sans-serif`;
+        prefixW=c.measureText(prefix).width;
       }
-
-      // Word-wrap this line's runs respecting maxW
-      // We treat the whole logical line as one stream of words,
-      // tracking which run each word belongs to for styling
       const words=[];
       for(const run of line){
-        const fs=run.fontSize||14;
-        const fontStr=`${run.italic?'italic ':''}${run.bold?'bold ':''}${fs}px -apple-system,sans-serif`;
-        oc.font=fontStr;
-        for(const word of run.text.split(' ')){
-          if(word) words.push({word, run, w:oc.measureText(word).width, spW:oc.measureText(' ').width});
-        }
+        const fs=run.fontSize||16;
+        c.font=`${run.italic?'italic ':''}${run.bold?'bold ':''}${fs}px -apple-system,sans-serif`;
+        const sp=c.measureText(' ').width;
+        for(const word of run.text.split(' ')){ if(word) words.push({word,run,w:c.measureText(word).width,spW:sp}); }
       }
-
-      // Build wrapped rows
-      const wrappedRows=[];
-      let rowWords=[];
-      let rowW=0;
       const avail=maxW-indent-prefixW;
-      for(const wObj of words){
-        const needed=rowWords.length?(rowW+wObj.spW+wObj.w):wObj.w;
-        if(needed>avail&&rowWords.length){
-          wrappedRows.push(rowWords);
-          rowWords=[wObj];
-          rowW=wObj.w;
-        } else {
-          if(rowWords.length) rowW+=wObj.spW+wObj.w;
-          else rowW=wObj.w;
-          rowWords.push(wObj);
-        }
+      const rows=[];
+      let rw=[],rW=0;
+      for(const wo of words){
+        const needed=rw.length?rW+wo.spW+wo.w:wo.w;
+        if(needed>avail&&rw.length){ rows.push(rw); rw=[wo]; rW=wo.w; }
+        else{ if(rw.length)rW+=wo.spW+wo.w; else rW=wo.w; rw.push(wo); }
       }
-      if(rowWords.length) wrappedRows.push(rowWords);
-      if(!wrappedRows.length){ y+=4; continue; }
+      if(rw.length) rows.push(rw);
+      if(!rows.length){ y+=6; continue; }
 
-      for(let ri=0;ri<wrappedRows.length;ri++){
-        if(y>totalH-PAD) break;
-        const row=wrappedRows[ri];
-        let x=PAD+indent;
-        // Draw list prefix on the first wrapped row only
-        if(ri===0&&prefix){
-          const pfRun=firstRun;
-          const pfFs=pfRun.fontSize||14;
-          oc.font=`${pfFs}px -apple-system,sans-serif`;
-          oc.fillStyle='#c8cad8';
-          oc.fillText(prefix,x,y);
-          x+=prefixW;
-        }
-        // Render each word in the row with its own style
-        let rowH=0;
-        for(const wObj of row){
-          const run=wObj.run;
-          const fs=run.fontSize||14;
-          rowH=Math.max(rowH,fs);
-          const fontStr=`${run.italic?'italic ':''}${run.bold?'bold ':''}${fs}px -apple-system,sans-serif`;
-          oc.font=fontStr;
-          oc.fillStyle='#c8cad8';
-          oc.fillText(wObj.word,x,y);
-          if(run.underline){
-            const tw=wObj.w;
-            oc.strokeStyle='#c8cad8'; oc.lineWidth=1;
-            oc.beginPath(); oc.moveTo(x,y+fs*0.15); oc.lineTo(x+tw,y+fs*0.15); oc.stroke();
+      for(let ri=0;ri<rows.length;ri++){
+        const row=rows[ri];
+        let x=PAD+indent, rowH=0;
+        for(const wo of row) rowH=Math.max(rowH,wo.run.fontSize||16);
+        if(doDraw){
+          if(ri===0&&prefix){
+            c.font=`${fr.fontSize||16}px -apple-system,sans-serif`;
+            c.fillStyle='#c8cad8'; c.fillText(prefix,x,y); x+=prefixW;
           }
-          x+=wObj.w+wObj.spW;
+          for(const wo of row){
+            const run=wo.run,fs=run.fontSize||16;
+            c.font=`${run.italic?'italic ':''}${run.bold?'bold ':''}${fs}px -apple-system,sans-serif`;
+            c.fillStyle='#c8cad8'; c.fillText(wo.word,x,y);
+            if(run.underline){
+              c.strokeStyle='#c8cad8'; c.lineWidth=Math.max(1,fs*0.07);
+              c.beginPath(); c.moveTo(x,y+fs*0.18); c.lineTo(x+wo.w,y+fs*0.18); c.stroke();
+            }
+            x+=wo.w+wo.spW;
+          }
         }
-        y+=Math.max(rowH*1.5,18);
+        y+=Math.max(rowH*1.55,20);
       }
     }
+    return y;
+  }
+
+  // Measure exact notes height via a scratch context (no actual drawing)
+  let notesH=mapH; // default: match map if no notes
+  if(notesHasContent){
+    const scratch=document.createElement('canvas').getContext('2d');
+    const measuredY=layoutNotes(scratch,NOTES_W-PAD*2,HEADER_H,false);
+    notesH=measuredY+PAD; // real content height + bottom padding
+  }
+
+  // Compose: notes panel is exactly as tall as its content,
+  // map is centred vertically if shorter, canvas height = taller of the two
+  const totalH=Math.max(mapH,notesHasContent?notesH:0);
+  const totalW=notesHasContent?mapW+NOTES_W:mapW;
+  const offscreen=document.createElement('canvas');
+  offscreen.width=totalW; offscreen.height=totalH;
+  const oc=offscreen.getContext('2d');
+  oc.fillStyle='#0d0f14'; oc.fillRect(0,0,totalW,totalH);
+
+  const mapOffX=notesHasContent?NOTES_W:0;
+  const mapOffY=notesHasContent?Math.round(Math.max(0,(notesH-mapH)/2)):0;
+  oc.drawImage(offMap,mapOffX,mapOffY);
+
+  if(notesHasContent){
+    // Notes background — only as tall as content, not the full canvas
+    oc.fillStyle='#13161f'; oc.fillRect(0,0,NOTES_W,notesH);
+    // Divider line — full canvas height
+    oc.fillStyle='#2a2f42'; oc.fillRect(NOTES_W-1,0,1,totalH);
+    // Header
+    oc.textAlign='left'; oc.textBaseline='top';
+    oc.fillStyle='#e8c840'; oc.font='bold 22px -apple-system,sans-serif';
+    oc.fillText(stratName,PAD,PAD);
+    oc.fillStyle='#7a8090'; oc.font='500 15px -apple-system,sans-serif';
+    oc.fillText(mapName,PAD,PAD+28);
+    oc.fillStyle='#2a2f42'; oc.fillRect(PAD,PAD+52,NOTES_W-PAD*2,1);
+    // Rich text body
+    oc.textBaseline='top';
+    layoutNotes(oc,NOTES_W-PAD*2,HEADER_H,true);
   }
 
   const link=document.createElement('a');
