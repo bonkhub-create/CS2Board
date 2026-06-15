@@ -221,6 +221,44 @@ body{background:var(--bg0);color:var(--text1)}
 .del-btn:hover{background:rgba(224,80,96,0.16)}
 #map-status{font-size:10px;color:var(--text3);text-align:center;margin-top:auto;}
 
+/* ── Colour popout grid ── */
+.clr-popout{
+  position:fixed;
+  background:var(--bg1);
+  border:1px solid var(--border2);
+  border-radius:12px;
+  padding:8px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  z-index:800;
+  pointer-events:auto;
+  opacity:0;transform:scale(0.88) translateX(-6px);
+  transition:opacity .12s ease,transform .12s ease;
+}
+.clr-popout.open{opacity:1;transform:scale(1) translateX(0);}
+.clr-popout::before{
+  content:'';position:absolute;
+  left:-6px;top:50%;transform:translateY(-50%);
+  border-top:5px solid transparent;
+  border-bottom:5px solid transparent;
+  border-right:6px solid var(--border2);
+}
+.clr-popout::after{
+  content:'';position:absolute;
+  left:-4px;top:50%;transform:translateY(-50%);
+  border-top:5px solid transparent;
+  border-bottom:5px solid transparent;
+  border-right:6px solid var(--bg1);
+}
+.clr-swatch{
+  width:26px;height:26px;border-radius:50%;
+  border:2px solid transparent;cursor:pointer;
+  transition:transform .1s,border-color .1s;
+}
+.clr-swatch:hover{transform:scale(1.15);}
+.clr-swatch.active{border-color:#fff;}
+
 /* ── Toast ── */
 #toast{
   position:fixed;bottom:calc(28px + var(--safe-bottom));left:50%;
@@ -492,24 +530,10 @@ body{background:var(--bg0);color:var(--text1)}
           <path d="M4 18 C7 14 10 10 16 8"/><polyline points="11,7 17,7 17,13"/>
         </svg>
       </div>
-      <div id="color-picker" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:2px 0;width:60px">
-        <div class="c-dot active" data-color="#60aaff" style="width:15px;height:15px;background:#60aaff" data-tip="Blue"></div>
-        <div class="c-dot" data-color="#e8c840" style="width:15px;height:15px;background:#e8c840" data-tip="Yellow"></div>
-        <div class="c-dot" data-color="#60cc60" style="width:15px;height:15px;background:#60cc60" data-tip="Green"></div>
-        <div class="c-dot" data-color="#e06040" style="width:15px;height:15px;background:#e06040" data-tip="Red"></div>
-        <div class="c-dot" data-color="#cc60cc" style="width:15px;height:15px;background:#cc60cc" data-tip="Purple"></div>
-        <div class="c-dot" data-color="#ffffff" style="width:15px;height:15px;background:#fff;border-color:#444" data-tip="White"></div>
-      </div>
+
       <div class="tb-btn" data-tool="text" style="font-size:14px;font-weight:700;color:var(--text2)" data-tip="Add a Text Label">T</div>
       <div class="tb-btn" data-tool="waypoint" id="btn-waypoint" style="font-size:14px;font-weight:700;color:#e8c840" data-tip="Place Numbered Waypoint">①</div>
-      <div id="waypoint-colors" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:2px 0;width:60px">
-        <div class="wc-global active" data-wcolor="yellow" style="width:15px;height:15px;border-radius:50%;background:#e8c840;border:2px solid #fff;cursor:pointer" data-tip="Yellow waypoints"></div>
-        <div class="wc-global" data-wcolor="blue"   style="width:15px;height:15px;border-radius:50%;background:#4a9ed8;border:2px solid transparent;cursor:pointer" data-tip="Blue waypoints"></div>
-        <div class="wc-global" data-wcolor="green"  style="width:15px;height:15px;border-radius:50%;background:#33bb44;border:2px solid transparent;cursor:pointer" data-tip="Green waypoints"></div>
-        <div class="wc-global" data-wcolor="red"    style="width:15px;height:15px;border-radius:50%;background:#dd3333;border:2px solid transparent;cursor:pointer" data-tip="Red waypoints"></div>
-        <div class="wc-global" data-wcolor="purple" style="width:15px;height:15px;border-radius:50%;background:#9955dd;border:2px solid transparent;cursor:pointer" data-tip="Purple waypoints"></div>
-        <div class="wc-global" data-wcolor="white"  style="width:15px;height:15px;border-radius:50%;background:#ddd;border:2px solid transparent;cursor:pointer" data-tip="White waypoints"></div>
-      </div>
+
     </div>
     <div class="tp-sep"></div>
     <div class="tp-section">
@@ -528,13 +552,7 @@ body{background:var(--bg0);color:var(--text1)}
           <path d="M5.5 19.5 C5.5 15.5 8.5 13 12 13 C15.5 13 18.5 15.5 18.5 19.5" fill="#666" opacity="0.9"/>
         </svg>
       </div>
-      <div id="teammate-colors" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:4px 0;width:60px">
-        <div class="pc-global active" data-pcolor="blue"   style="width:16px;height:16px;background:#4a9ed8;border-color:#fff" data-tip="Blue"></div>
-        <div class="pc-global" data-pcolor="orange" style="width:16px;height:16px;background:#e05500" data-tip="Orange"></div>
-        <div class="pc-global" data-pcolor="purple" style="width:16px;height:16px;background:#9955dd" data-tip="Purple"></div>
-        <div class="pc-global" data-pcolor="green"  style="width:16px;height:16px;background:#33bb44" data-tip="Green"></div>
-        <div class="pc-global" data-pcolor="yellow" style="width:16px;height:16px;background:#ccaa00" data-tip="Yellow"></div>
-      </div>
+
     </div>
     <div class="tp-sep"></div>
     <div class="tp-section">
@@ -906,6 +924,31 @@ body{background:var(--bg0);color:var(--text1)}
     <div id="mob-sel-info">Nothing selected — tap an element on the board first.</div>
     <button class="mob-del-btn" id="mob-del-btn" style="display:none">🗑 Delete</button>
   </div>
+</div>
+
+<!-- ── Colour popouts (appended to body so they're not clipped by overflow:hidden) ── -->
+<div id="popout-line" class="clr-popout" role="menu" aria-label="Line colour">
+  <div class="clr-swatch active" data-color="#60aaff" style="background:#60aaff" data-tip="Blue"></div>
+  <div class="clr-swatch" data-color="#e8c840" style="background:#e8c840" data-tip="Yellow"></div>
+  <div class="clr-swatch" data-color="#60cc60" style="background:#60cc60" data-tip="Green"></div>
+  <div class="clr-swatch" data-color="#e06040" style="background:#e06040" data-tip="Red"></div>
+  <div class="clr-swatch" data-color="#cc60cc" style="background:#cc60cc" data-tip="Purple"></div>
+  <div class="clr-swatch" style="background:#fff;border-color:#333" data-color="#ffffff" data-tip="White"></div>
+</div>
+<div id="popout-player" class="clr-popout" role="menu" aria-label="Player colour">
+  <div class="clr-swatch active" data-pcolor="blue"   style="background:#4a9ed8" data-tip="Blue"></div>
+  <div class="clr-swatch" data-pcolor="orange" style="background:#e05500" data-tip="Orange"></div>
+  <div class="clr-swatch" data-pcolor="purple" style="background:#9955dd" data-tip="Purple"></div>
+  <div class="clr-swatch" data-pcolor="green"  style="background:#33bb44" data-tip="Green"></div>
+  <div class="clr-swatch" data-pcolor="yellow" style="background:#ccaa00" data-tip="Yellow"></div>
+</div>
+<div id="popout-waypoint" class="clr-popout" role="menu" aria-label="Waypoint colour">
+  <div class="clr-swatch active" data-wcolor="yellow" style="background:#e8c840" data-tip="Yellow"></div>
+  <div class="clr-swatch" data-wcolor="blue"   style="background:#4a9ed8" data-tip="Blue"></div>
+  <div class="clr-swatch" data-wcolor="green"  style="background:#33bb44" data-tip="Green"></div>
+  <div class="clr-swatch" data-wcolor="red"    style="background:#dd3333" data-tip="Red"></div>
+  <div class="clr-swatch" data-wcolor="purple" style="background:#9955dd" data-tip="Purple"></div>
+  <div class="clr-swatch" data-wcolor="white"  style="background:#ddd"    data-tip="White"></div>
 </div>
 
 <script>
@@ -3105,10 +3148,134 @@ document.getElementById('confirm-bg').addEventListener('click',e=>{
   }
 });
 
+
+/* ── Colour popout logic ────────────────────────────────────────────────────
+   Three popouts: line colour (draw+arrow), player colour (teammate),
+   waypoint colour (waypoint). Click the tool button to open/close.
+   Click outside or pick a colour to close.
+─────────────────────────────────────────────────────────────────────────── */
+(function(){
+  const popouts = {
+    line:     document.getElementById('popout-line'),
+    player:   document.getElementById('popout-player'),
+    waypoint: document.getElementById('popout-waypoint'),
+  };
+  let openPopout = null;
+
+  // Position a popout to the right of a toolbar button
+  function positionPopout(pop, btn){
+    const br = btn.getBoundingClientRect();
+    const pr = pop.getBoundingClientRect();
+    const top = br.top + br.height/2 - pr.height/2;
+    const left = br.right + 8;
+    pop.style.top  = Math.max(8, Math.min(top, window.innerHeight - pr.height - 8)) + 'px';
+    pop.style.left = left + 'px';
+  }
+
+  function openPop(key, btn){
+    if(openPopout === key){
+      closePop(); return;
+    }
+    closePop();
+    openPopout = key;
+    _justOpened = true;
+    const pop = popouts[key];
+    pop.classList.add('open');
+    requestAnimationFrame(()=> positionPopout(pop, btn));
+  }
+
+  function closePop(){
+    if(!openPopout) return;
+    popouts[openPopout].classList.remove('open');
+    openPopout = null;
+  }
+
+  // Wire tool buttons to open their popout
+  // draw & arrow → line colour popout
+  ['draw','arrow'].forEach(tool=>{
+    const btn = document.querySelector(`[data-tool="${tool}"]`);
+    if(btn) btn.addEventListener('click', ()=> openPop('line', btn));
+  });
+  // teammate → player colour popout
+  const tmBtn = document.querySelector('[data-tool="teammate"]');
+  if(tmBtn) tmBtn.addEventListener('click', ()=> openPop('player', tmBtn));
+  // waypoint → waypoint colour popout
+  const wpBtn = document.querySelector('[data-tool="waypoint"]');
+  if(wpBtn) wpBtn.addEventListener('click', ()=> openPop('waypoint', wpBtn));
+
+  // Line colour swatches
+  popouts.line.querySelectorAll('.clr-swatch').forEach(sw=>{
+    sw.addEventListener('click', e=>{
+      e.stopPropagation();
+      popouts.line.querySelectorAll('.clr-swatch').forEach(s=>s.classList.remove('active'));
+      sw.classList.add('active');
+      currentColor = sw.dataset.color;
+      // Sync desktop c-dot active state
+      document.querySelectorAll('.c-dot').forEach(d=>d.classList.remove('active'));
+      const match = document.querySelector(`.c-dot[data-color="${sw.dataset.color}"]`);
+      if(match) match.classList.add('active');
+      closePop();
+    });
+  });
+
+  // Player colour swatches
+  popouts.player.querySelectorAll('.clr-swatch').forEach(sw=>{
+    sw.addEventListener('click', e=>{
+      e.stopPropagation();
+      popouts.player.querySelectorAll('.clr-swatch').forEach(s=>s.classList.remove('active'));
+      sw.classList.add('active');
+      setPlayerColor(sw.dataset.pcolor);
+      // Sync pc-global
+      document.querySelectorAll('.pc-global').forEach(d=>{d.style.borderColor='transparent';d.classList.remove('active');});
+      const match = document.querySelector(`.pc-global[data-pcolor="${sw.dataset.pcolor}"]`);
+      if(match){match.style.borderColor='#fff';match.classList.add('active');}
+      closePop();
+    });
+  });
+
+  // Waypoint colour swatches
+  popouts.waypoint.querySelectorAll('.clr-swatch').forEach(sw=>{
+    sw.addEventListener('click', e=>{
+      e.stopPropagation();
+      popouts.waypoint.querySelectorAll('.clr-swatch').forEach(s=>s.classList.remove('active'));
+      sw.classList.add('active');
+      currentWaypointColor = sw.dataset.wcolor;
+      // Sync wc-global
+      document.querySelectorAll('.wc-global').forEach(d=>{d.style.borderColor='transparent';d.classList.remove('active');});
+      const match = document.querySelector(`.wc-global[data-wcolor="${sw.dataset.wcolor}"]`);
+      if(match){match.style.borderColor='#fff';match.classList.add('active');}
+      closePop();
+    });
+  });
+
+  // Close on click outside — skip the immediate click that opened the popout
+  let _justOpened = false;
+  document.addEventListener('click', ()=>{
+    if(_justOpened){ _justOpened=false; return; }
+    closePop();
+  });
+  // Prevent popout clicks from propagating to document
+  Object.values(popouts).forEach(p=> p.addEventListener('click', e=> e.stopPropagation()));
+  // Close on Escape
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePop(); });
+  // Reposition on resize
+  window.addEventListener('resize', ()=>{
+    if(openPopout){
+      const btn = openPopout==='line'
+        ? document.querySelector('[data-tool="draw"]')
+        : openPopout==='player'
+        ? document.querySelector('[data-tool="teammate"]')
+        : document.querySelector('[data-tool="waypoint"]');
+      if(btn) positionPopout(popouts[openPopout], btn);
+    }
+  });
+})();
+
 resize();
 loadMap(currentMap);
 loadFromURL();
 
 </script>
+
 </body>
 </html>
