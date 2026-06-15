@@ -944,7 +944,23 @@ zoomInp.addEventListener('focus',()=>zoomInp.select());
 cv.addEventListener('wheel',e=>{
   e.preventDefault();
   const r=cv.getBoundingClientRect();
-  zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.05:1/1.05);
+  // ctrlKey=true  → pinch-to-zoom gesture (trackpad) or Ctrl+scroll (mouse/trackpad) → zoom
+  // large deltaX   → two-finger horizontal scroll (trackpad) → pan
+  // otherwise      → mouse wheel (deltaX≈0, deltaY only) → zoom
+  if(e.ctrlKey||e.metaKey){
+    // Pinch-to-zoom or Ctrl+scroll: zoom centred on cursor
+    const factor=e.deltaY<0?1.05:1/1.05;
+    zoomAt(e.clientX-r.left,e.clientY-r.top,factor);
+  } else if(Math.abs(e.deltaX)>Math.abs(e.deltaY)*0.3||Math.abs(e.deltaX)>3){
+    // Two-finger trackpad scroll (has both axes): pan the map
+    vx-=e.deltaX;
+    vy-=e.deltaY;
+    render();
+  } else {
+    // Pure vertical scroll (mouse wheel): zoom centred on cursor
+    const factor=e.deltaY<0?1.05:1/1.05;
+    zoomAt(e.clientX-r.left,e.clientY-r.top,factor);
+  }
 },{passive:false});
 
 /* ═══════════════════════════════════════════
