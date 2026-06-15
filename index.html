@@ -114,19 +114,82 @@ body{background:var(--bg0);color:var(--text1)}
 #cvwrap{flex:1;position:relative;overflow:hidden;touch-action:none}
 #cv{position:absolute;top:0;left:0;display:block;touch-action:none}
 
-/* ── Notes bar below canvas ── */
+/* ── Rich notes bar below canvas ── */
 #notes-bar{
-  background:var(--bg1);border-top:1px solid var(--border);
-  padding:10px 16px;flex-shrink:0;display:flex;align-items:flex-start;gap:12px;
-  min-height:42px;max-height:150px;overflow-y:auto;
+  background:var(--bg1);
+  border-top:2px solid var(--border2);
+  display:flex;flex-direction:column;
+  flex-shrink:0;min-height:140px;max-height:220px;
 }
-#notes-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding-top:3px;white-space:nowrap;flex-shrink:0;}
-#notes-display{font-size:12px;color:var(--text2);line-height:1.6;flex:1;white-space:pre-wrap;word-break:break-word;}
-#notes-display.empty{color:var(--text3);font-style:italic;}
+#notes-toolbar{
+  display:flex;align-items:center;gap:2px;
+  padding:5px 8px;border-bottom:1px solid var(--border);
+  background:var(--bg2);flex-shrink:0;flex-wrap:nowrap;overflow-x:auto;
+  scrollbar-width:none;
+}
+#notes-toolbar::-webkit-scrollbar{display:none}
+/* Font-size select */
+#nt-fontsize{
+  height:26px;background:var(--bg3);color:var(--text1);
+  border:1px solid var(--border2);border-radius:5px;
+  font-size:11px;padding:0 6px;outline:none;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%239ba0b4'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 5px center;
+  padding-right:18px;min-width:68px;flex-shrink:0;
+}
+#nt-fontsize:focus{border-color:var(--border2)}
+/* Toolbar vertical divider */
+.nt-sep{width:1px;height:16px;background:var(--border2);margin:0 3px;flex-shrink:0}
+/* Individual buttons */
+.nt-btn{
+  height:26px;min-width:26px;padding:0 5px;
+  border-radius:4px;border:1px solid transparent;
+  background:none;color:var(--text2);
+  font-size:12px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  flex-shrink:0;transition:background .1s,color .1s,border-color .1s;
+  white-space:nowrap;
+}
+.nt-btn:hover{background:var(--bg3);color:var(--text1)}
+.nt-btn.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(232,200,64,.3)}
+/* The editable area */
+#notes-editor{
+  flex:1;overflow-y:auto;
+  padding:10px 14px;outline:none;
+  /* font-size driven by JS via --notes-fs custom property */
+  font-size:var(--notes-fs,14px);
+  line-height:1.65;color:var(--text1);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  caret-color:var(--accent);
+  min-height:80px;
+}
+/* All children inherit the editor font size so lists match */
+#notes-editor *{
+  background-color:transparent !important;
+  color:inherit;
+}
+/* Lists and items explicitly inherit so browser doesn't reset them */
+#notes-editor ul,#notes-editor ol{
+  padding-left:22px;
+  font-size:inherit;
+}
+#notes-editor li{
+  margin:2px 0;
+  font-size:inherit;
+}
+/* Keep selected text readable */
+#notes-editor ::selection{background:rgba(232,200,64,.25);color:var(--text1);}
+#notes-editor::-moz-selection{background:rgba(232,200,64,.25);color:var(--text1);}
+#notes-editor:empty::before{
+  content:attr(data-placeholder);
+  color:var(--text3);font-style:italic;pointer-events:none;
+}
 
 /* ── Right sidebar ── */
 #sidebar{
-  width:200px;background:var(--bg1);border-left:1px solid var(--border);
+  width:190px;background:var(--bg1);border-left:1px solid var(--border);
   padding:12px 10px;display:flex;flex-direction:column;gap:10px;
   overflow-y:auto;flex-shrink:0;
 }
@@ -220,6 +283,7 @@ body{background:var(--bg0);color:var(--text1)}
   #sidebar   { display:none !important; }
   #topbar    { display:none !important; }
   #notes-bar { display:none !important; }
+  #notes-toolbar { display:none !important; }
 
   /* Shell stacks vertically */
   #app  { flex-direction:column; height:100vh; height:100dvh; }
@@ -577,19 +641,52 @@ body{background:var(--bg0);color:var(--text1)}
     <div id="board">
       <div id="cvwrap"><canvas id="cv"></canvas></div>
       <div id="sidebar">
-        <div class="s-lbl">Notes</div>
-        <textarea id="notes" placeholder="Describe the strategy...&#10;&#10;e.g. 3 rush B, smoke van, flash over CT..."></textarea>
         <div class="s-lbl">Selected</div>
         <div id="sel-info"><span style="color:var(--text3)">Click an element to select</span></div>
-        <div style="flex:1"></div>
         <div id="map-status"></div>
       </div>
     </div>
 
-    <!-- Desktop notes bar -->
+    <!-- Rich notes bar below canvas -->
     <div id="notes-bar">
-      <span id="notes-label">Notes</span>
-      <div id="notes-display" class="empty">No notes yet — add them in the sidebar</div>
+      <div id="notes-toolbar">
+        <!-- Font size -->
+        <select id="nt-fontsize" title="Font size">
+          <option value="10px">10px</option>
+          <option value="12px">12px</option>
+          <option value="14px" selected>14px</option>
+          <option value="16px">16px</option>
+          <option value="20px">20px</option>
+          <option value="24px">24px</option>
+          <option value="32px">32px</option>
+        </select>
+        <div class="nt-sep"></div>
+        <!-- Bold -->
+        <button class="nt-btn" id="nt-bold" title="Bold (Ctrl+B)" onclick="doc('bold')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>
+        </button>
+        <!-- Italic -->
+        <button class="nt-btn" id="nt-italic" title="Italic (Ctrl+I)" onclick="doc('italic')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>
+        </button>
+        <!-- Underline -->
+        <button class="nt-btn" id="nt-underline" title="Underline (Ctrl+U)" onclick="doc('underline')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z"/></svg>
+        </button>
+        <div class="nt-sep"></div>
+        <!-- Bullet list -->
+        <button class="nt-btn" id="nt-ul" title="Bullet list" onclick="docList('insertUnorderedList')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></svg>
+        </button>
+        <!-- Numbered list -->
+        <button class="nt-btn" id="nt-ol" title="Numbered list" onclick="docList('insertOrderedList')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h2v.5H3v1h1v.5H2v1h3v-4H2v1zm1-9h1V4H2v1h1v3zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2v1zm5-6v2h14V5H7zm0 14h14v-2H7v2zm0-6h14v-2H7v2z"/></svg>
+        </button>
+        <div class="nt-sep"></div>
+        <!-- Clear formatting -->
+        <button class="nt-btn" id="nt-clear" title="Clear formatting" onclick="doc('removeFormat')" style="font-size:11px;font-weight:700;letter-spacing:-.5px">T<sub style="font-size:8px">x</sub></button>
+      </div>
+      <div id="notes-editor" contenteditable="true" spellcheck="false" data-placeholder="Add strategy notes — smokes, flashes, player roles..."></div>
     </div>
 
     <!-- Mobile bottom toolbar (inside #main so it stays above safe area) -->
@@ -1896,7 +1993,7 @@ function doNew(){
   waypointColorCnt={yellow:1,blue:1,green:1,red:1,purple:1,white:1};
   document.getElementById('sname').value='New Strategy';
   document.getElementById('mob-sname').value='New Strategy';
-  document.getElementById('notes').value='';
+  getNotesEditor().innerHTML='';
   document.getElementById('mob-notes-ta').value='';
   selectedEl=null; updateSidebar(null); render(); syncNotesBar();
   showToast('New board','success');
@@ -1923,17 +2020,94 @@ function doShare(){
    EXPORT PNG
 ═══════════════════════════════════════════ */
 function doExport(){
-  const notes=document.getElementById('notes').value.trim();
   const stratName=document.getElementById('sname').value||'strat';
   const mapName=(document.querySelector('#map-sel option:checked')||{}).textContent||currentMap;
-  const NOTES_W=320, PAD=24;
-  const totalW=notes?W+NOTES_W:W, totalH=H;
+  const notesHTML=getNotesEditor().innerHTML;
+  const notesText=stripHtml(notesHTML).trim();
+
+  // ── Compute tight bounding box around the map image + all elements ──
+  const EXPORT_PAD=40; // world-space padding around content
+  let minWX=Infinity,minWY=Infinity,maxWX=-Infinity,maxWY=-Infinity;
+
+  // Include map image bounds
+  if(mapLoaded&&mapImages[currentMap]){
+    const img=mapImages[currentMap];
+    minWX=Math.min(minWX,0);       minWY=Math.min(minWY,0);
+    maxWX=Math.max(maxWX,img.width); maxWY=Math.max(maxWY,img.height);
+  }
+
+  // Include all elements
+  elements.forEach(el=>{
+    if(el.type==='player'||el.type==='icon'||el.type==='waypoint'){
+      const r=22; // world-space radius buffer
+      minWX=Math.min(minWX,el.x-r); minWY=Math.min(minWY,el.y-r);
+      maxWX=Math.max(maxWX,el.x+r); maxWY=Math.max(maxWY,el.y+r);
+    } else if(el.type==='smokezone'||el.type==='molotovzone'){
+      minWX=Math.min(minWX,el.x-el.r); minWY=Math.min(minWY,el.y-el.r);
+      maxWX=Math.max(maxWX,el.x+el.r); maxWY=Math.max(maxWY,el.y+el.r);
+    } else if(el.type==='path'&&el.points.length){
+      el.points.forEach(p=>{
+        minWX=Math.min(minWX,p.x); minWY=Math.min(minWY,p.y);
+        maxWX=Math.max(maxWX,p.x); maxWY=Math.max(maxWY,p.y);
+      });
+    } else if(el.type==='text'){
+      // Estimate text box in world space (fontSize is world pixels at zoom=1)
+      const fs=el.fontSize||14;
+      const tw=el.width||(el.text.length*fs*0.6);
+      const th=el.height||(fs*1.8);
+      minWX=Math.min(minWX,el.x); minWY=Math.min(minWY,el.y);
+      maxWX=Math.max(maxWX,el.x+tw); maxWY=Math.max(maxWY,el.y+th);
+    }
+  });
+
+  // Fallback if board is empty
+  if(!isFinite(minWX)){ minWX=0; minWY=0; maxWX=1024; maxWY=1024; }
+
+  minWX-=EXPORT_PAD; minWY-=EXPORT_PAD;
+  maxWX+=EXPORT_PAD; maxWY+=EXPORT_PAD;
+
+  const contentW=maxWX-minWX, contentH=maxWY-minWY;
+  // Cap at a reasonable export size (4k wide max)
+  const maxDim=3200;
+  const exportZ=Math.min(2, maxDim/Math.max(contentW,contentH));
+  const mapW=Math.round(contentW*exportZ);
+  const mapH=Math.round(contentH*exportZ);
+
+  // ── Render to offscreen canvas at the computed view ──
+  const offMap=document.createElement('canvas');
+  offMap.width=mapW; offMap.height=mapH;
+  const om=offMap.getContext('2d');
+  // Save current viewport, set to export viewport
+  const savedVx=vx,savedVy=vy,savedVz=vz;
+  vx=-minWX*exportZ; vy=-minWY*exportZ; vz=exportZ;
+  // Draw background + map + elements
+  om.fillStyle='#0d0f14'; om.fillRect(0,0,mapW,mapH);
+  if(mapLoaded&&mapImages[currentMap]){
+    const img=mapImages[currentMap];
+    om.drawImage(img,vx,vy,img.width*vz,img.height*vz);
+  }
+  // Swap context temporarily so render() draws into om
+  const realCtx=ctx;
+  // Re-use drawEl but pass our offscreen ctx via a local draw pass
+  for(const el of elements){
+    om.save();
+    drawElToCtx(om,el,false,exportZ);
+    om.restore();
+  }
+  // Restore viewport
+  vx=savedVx; vy=savedVy; vz=savedVz;
+
+  // ── Compose final image: notes panel (if any) left, map right ──
+  const NOTES_W=340, PAD=24;
+  const totalW=notesText?mapW+NOTES_W:mapW;
+  const totalH=mapH;
   const offscreen=document.createElement('canvas');
   offscreen.width=totalW; offscreen.height=totalH;
   const oc=offscreen.getContext('2d');
-  const mapOffsetX=notes?NOTES_W:0;
-  oc.drawImage(cv,mapOffsetX,0);
-  if(notes){
+  const mapOffX=notesText?NOTES_W:0;
+  oc.drawImage(offMap,mapOffX,0);
+
+  if(notesText){
     oc.fillStyle='#13161f'; oc.fillRect(0,0,NOTES_W,totalH);
     oc.fillStyle='#2a2f42'; oc.fillRect(NOTES_W-1,0,1,totalH);
     oc.fillStyle='#e8c840'; oc.font='bold 16px -apple-system,sans-serif';
@@ -1943,7 +2117,7 @@ function doExport(){
     oc.fillStyle='#c8cad8'; oc.font='13px -apple-system,sans-serif';
     const lineH=20,maxW=NOTES_W-PAD*2;
     let y=PAD+52;
-    for(const line of notes.split(/\n/)){
+    for(const line of notesText.split('\n')){
       if(y>totalH-PAD) break;
       if(!line.trim()){y+=lineH*0.6;continue;}
       let row='';
@@ -1955,11 +2129,90 @@ function doExport(){
       if(row&&y<=totalH-PAD){oc.fillText(row,PAD,y);y+=lineH;}
     }
   }
+
   const link=document.createElement('a');
   link.download=stratName.replace(/\s+/g,'_')+'.png';
   link.href=offscreen.toDataURL('image/png');
   link.click();
+  render(); // restore live canvas
   showToast('PNG exported ✓','success');
+}
+
+// Draw a single element to an arbitrary canvas context (for export)
+function drawElToCtx(c,el,sel,z){
+  const toS=(wx,wy)=>({x:vx+wx*z,y:vy+wy*z});
+  if(el.type==='player'){
+    const s=toS(el.x,el.y),r=Math.max(4,8*Math.min(z,2));
+    const pc=el.enemy?ENEMY_COLOR:(PLAYER_COLORS[el.color]||PLAYER_COLORS.blue);
+    const angle=el.angle||0;
+    c.beginPath(); c.arc(s.x,s.y,r,0,Math.PI*2);
+    c.fillStyle=pc.fill; c.fill();
+    c.strokeStyle=pc.stroke; c.lineWidth=1.5; c.stroke();
+    const chevR=r+Math.max(2,r*0.4);
+    const chx=s.x+Math.cos(angle)*chevR,chy=s.y+Math.sin(angle)*chevR;
+    const cs=Math.max(2.5,r*0.55),perp=angle+Math.PI/2;
+    c.strokeStyle=pc.stroke; c.lineWidth=Math.max(1.2,r*0.22); c.lineCap='round'; c.lineJoin='round';
+    c.beginPath();
+    c.moveTo(chx-Math.cos(perp)*cs+Math.cos(angle+Math.PI)*cs*0.55,chy-Math.sin(perp)*cs+Math.sin(angle+Math.PI)*cs*0.55);
+    c.lineTo(chx+Math.cos(angle)*cs*0.7,chy+Math.sin(angle)*cs*0.7);
+    c.lineTo(chx+Math.cos(perp)*cs+Math.cos(angle+Math.PI)*cs*0.55,chy+Math.sin(perp)*cs+Math.sin(angle+Math.PI)*cs*0.55);
+    c.stroke();
+  } else if(el.type==='waypoint'){
+    const s=toS(el.x,el.y),r=Math.max(7,13*Math.min(z,2));
+    const wc=WAYPOINT_COLORS[el.wcolor]||WAYPOINT_COLORS.yellow;
+    c.beginPath(); c.arc(s.x,s.y,r,0,Math.PI*2);
+    c.fillStyle=wc.fill; c.fill(); c.strokeStyle=wc.stroke; c.lineWidth=2; c.stroke();
+    c.fillStyle=wc.text; c.font=`bold ${Math.max(7,12*Math.min(z,2))}px sans-serif`;
+    c.textAlign='center'; c.textBaseline='middle'; c.fillText(el.num,s.x,s.y);
+  } else if(el.type==='smokezone'){
+    const s=toS(el.x,el.y),sr=el.r*z;
+    c.globalAlpha=0.22; c.beginPath(); c.arc(s.x,s.y,sr,0,Math.PI*2);
+    c.fillStyle='#b0cce0'; c.fill(); c.globalAlpha=0.55;
+    c.strokeStyle='#c8dff0'; c.lineWidth=1.5; c.stroke(); c.globalAlpha=1;
+    c.font=`600 ${Math.max(9,Math.min(sr*0.45,16))}px sans-serif`;
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillStyle='rgba(180,210,230,0.85)'; c.fillText('S',s.x,s.y);
+  } else if(el.type==='molotovzone'){
+    const s=toS(el.x,el.y),sr=el.r*z;
+    c.globalAlpha=0.3; c.beginPath(); c.arc(s.x,s.y,sr,0,Math.PI*2);
+    c.fillStyle='#d04010'; c.fill(); c.globalAlpha=0.6;
+    c.strokeStyle='#ff7030'; c.lineWidth=1.5; c.stroke(); c.globalAlpha=1;
+  } else if(el.type==='icon'){
+    const s=toS(el.x,el.y);
+    const fs=Math.max(10,16*Math.min(z,2));
+    c.font=`${fs}px serif`; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText({flash:'💥',bomb:'💣',nade:'💣',sniper:'🎯'}[el.icon]||'?',s.x,s.y);
+  } else if(el.type==='path'){
+    if(el.points.length<2) return;
+    c.strokeStyle=el.color||'#60aaff'; c.lineWidth=2.2; c.lineCap='round'; c.lineJoin='round';
+    c.beginPath();
+    const p0=toS(el.points[0].x,el.points[0].y); c.moveTo(p0.x,p0.y);
+    for(let i=1;i<el.points.length;i++){const p=toS(el.points[i].x,el.points[i].y);c.lineTo(p.x,p.y);}
+    c.stroke();
+    if(el.arrow&&el.points.length>=2){
+      const pa=toS(el.points[el.points.length-2].x,el.points[el.points.length-2].y);
+      const pb=toS(el.points[el.points.length-1].x,el.points[el.points.length-1].y);
+      const a=Math.atan2(pb.y-pa.y,pb.x-pa.x),size=13;
+      c.fillStyle=el.color||'#60aaff'; c.beginPath();
+      c.moveTo(pb.x,pb.y);
+      c.lineTo(pb.x-size*Math.cos(a-0.4),pb.y-size*Math.sin(a-0.4));
+      c.lineTo(pb.x-size*Math.cos(a+0.4),pb.y-size*Math.sin(a+0.4));
+      c.closePath(); c.fill();
+    }
+  } else if(el.type==='text'){
+    const s=toS(el.x,el.y);
+    const fs=Math.max(6,(el.fontSize||14)*z);
+    const PAD=6,lineH=fs*1.4;
+    c.font=`500 ${fs}px sans-serif`; c.textAlign='left'; c.textBaseline='top';
+    const autoW=c.measureText(el.text).width;
+    const bwInner=el.width?el.width*z:autoW;
+    const lines=wrapTextLines(c,el.text,bwInner);
+    const bw=bwInner+PAD*2,bh=el.height?el.height*z:lines.length*lineH+PAD*1.5;
+    c.fillStyle='rgba(0,0,0,0.75)';
+    c.beginPath(); c.roundRect(s.x,s.y,bw,bh,4); c.fill();
+    c.fillStyle='#fff';
+    lines.forEach((ln,i)=>c.fillText(ln,s.x+PAD,s.y+PAD*0.6+i*lineH));
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -1977,7 +2230,7 @@ function showToast(msg,type=''){
 ═══════════════════════════════════════════ */
 function getBoardState(){
   return{v:1,name:document.getElementById('sname').value,map:currentMap,
-    notes:document.getElementById('notes').value,elements,playerCnt,waypointCnt};
+    notes:getNotesEditor().innerHTML,elements,playerCnt,waypointCnt};
 }
 function loadBoardState(state){
   if(!state||state.v!==1) return false;
@@ -1986,8 +2239,8 @@ function loadBoardState(state){
   elements.filter(e=>e.type==='waypoint').forEach(e=>{const c=e.wcolor||'yellow';if(waypointColorCnt[c]<=e.num)waypointColorCnt[c]=e.num+1;});
   document.getElementById('sname').value=state.name||'';
   document.getElementById('mob-sname').value=state.name||'';
-  document.getElementById('notes').value=state.notes||'';
-  document.getElementById('mob-notes-ta').value=state.notes||'';
+  getNotesEditor().innerHTML=state.notes||'';
+  document.getElementById('mob-notes-ta').value=stripHtml(state.notes||'');
   if(state.map&&state.map!==currentMap){
     currentMap=state.map;
     document.getElementById('map-sel').value=currentMap;
@@ -2043,7 +2296,7 @@ function openLibrary(){
       strats.forEach(s=>{
         const card=document.createElement('div'); card.className='strat-card';
         const saved=s.savedAt?new Date(s.savedAt).toLocaleDateString():'';
-        card.innerHTML=`<div class="strat-card-info"><div class="strat-card-name">${s.name}</div><div class="strat-card-meta">${saved}${s.notes?'  ·  '+s.notes.slice(0,40)+(s.notes.length>40?'…':''):''}</div></div><button class="strat-card-del" title="Delete">🗑</button>`;
+        card.innerHTML=`<div class="strat-card-info"><div class="strat-card-name">${s.name}</div><div class="strat-card-meta">${saved}${s.notes?'  ·  '+stripHtml(s.notes).slice(0,40)+(stripHtml(s.notes).length>40?'…':''):''}</div></div><button class="strat-card-del" title="Delete">🗑</button>`;
         card.querySelector('.strat-card-info').addEventListener('click',()=>{loadBoardState(s);modalBg.classList.remove('open');showToast(`"${s.name}" loaded`,'success');});
         card.querySelector('.strat-card-del').addEventListener('click',ev=>{ev.stopPropagation();if(!confirm(`Delete "${s.name}"?`))return;saveLibrary(getLibrary().filter(x=>!(x.name===s.name&&x.map===s.map)));openLibrary();showToast('Deleted');});
         list.appendChild(card);
@@ -2128,13 +2381,7 @@ function showConflictUI(conflicts,freshCount){
 /* ═══════════════════════════════════════════
    NOTES BAR SYNC
 ═══════════════════════════════════════════ */
-function syncNotesBar(){
-  const val=document.getElementById('notes').value.trim();
-  const disp=document.getElementById('notes-display');
-  if(val){disp.textContent=val;disp.classList.remove('empty');}
-  else{disp.textContent='No notes yet — add them in the sidebar';disp.classList.add('empty');}
-}
-document.getElementById('notes').addEventListener('input',syncNotesBar);
+function syncNotesBar(){} // notes now live in #notes-editor, no separate display needed
 
 /* ═══════════════════════════════════════════
    MOBILE SHEET HELPERS
@@ -2208,15 +2455,16 @@ document.querySelectorAll('#mob-waypoint-colors .mob-dot').forEach(dot=>{
 document.getElementById('mob-notes-btn').addEventListener('click',()=>{
   // open from actions sheet
   closeSheet('mob-actions-overlay');
-  document.getElementById('mob-notes-ta').value=document.getElementById('notes').value;
+  document.getElementById('mob-notes-ta').value=stripHtml(getNotesEditor().innerHTML);
   openSheet('mob-notes-overlay');
   setTimeout(()=>document.getElementById('mob-notes-ta').focus(),200);
 });
 document.getElementById('mob-notes-close').addEventListener('click',()=>closeSheet('mob-notes-overlay'));
 document.getElementById('mob-notes-done').addEventListener('click',()=>{
   const val=document.getElementById('mob-notes-ta').value;
-  document.getElementById('notes').value=val;
-  syncNotesBar(); closeSheet('mob-notes-overlay');
+  // Convert plain text back to paragraphs in the rich editor
+  getNotesEditor().innerHTML=val.split('\n').map(l=>l?`<p>${l}</p>`:'<p><br></p>').join('');
+  closeSheet('mob-notes-overlay');
   showToast('Notes saved ✓','success');
 });
 
@@ -2267,12 +2515,166 @@ document.getElementById('map-sel').addEventListener('change',()=>{
 });
 
 /* ═══════════════════════════════════════════
+   RICH NOTES EDITOR
+═══════════════════════════════════════════ */
+function getNotesEditor(){ return document.getElementById('notes-editor'); }
+function stripHtml(html){
+  const d=document.createElement('div'); d.innerHTML=html;
+  return d.innerText||d.textContent||'';
+}
+function doc(cmd,val){
+  const ed=getNotesEditor(); ed.focus();
+  document.execCommand(cmd,false,val||null);
+  updateNtBtnStates();
+}
+
+// ── Font size state ────────────────────────────────────────────────────────
+let currentNotesFontSize='14px';
+// When true, the next keystroke should open a new sized span
+let pendingSizeChange=false;
+// The span currently being typed into (so consecutive keystrokes stay in it)
+let activeTypingSpan=null;
+
+// Wrap current selection in a <span style="font-size:px"> and return it.
+// If selection is collapsed, insert an empty span and place caret inside.
+function wrapSelectionInSizeSpan(px){
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount) return null;
+  const range=sel.getRangeAt(0);
+  const span=document.createElement('span');
+  span.style.fontSize=px;
+
+  if(range.collapsed){
+    // Insert zero-width non-breaking space so the span has content and caret lands inside
+    span.appendChild(document.createTextNode('​'));
+    range.insertNode(span);
+    // Place caret after the zwsp, inside the span
+    const r=document.createRange();
+    r.setStart(span.firstChild,1);
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    return span;
+  } else {
+    range.surroundContents(span);
+    // Move caret to end of wrapped content
+    const r=document.createRange();
+    r.selectNodeContents(span);
+    r.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    return span;
+  }
+}
+
+function applyNotesFontSize(px){
+  currentNotesFontSize=px;
+  // Always update the CSS var so the editor base + inherited list items reflect it
+  getNotesEditor().style.setProperty('--notes-fs',px);
+
+  const sel=window.getSelection();
+  const hasSelection=sel&&sel.rangeCount&&!sel.getRangeAt(0).collapsed;
+
+  if(hasSelection){
+    // Wrap the selected text immediately
+    try{ wrapSelectionInSizeSpan(px); } catch(e){}
+    activeTypingSpan=null;
+    pendingSizeChange=false;
+  } else {
+    // No selection — mark that the next keystroke should start a new sized span
+    pendingSizeChange=true;
+    activeTypingSpan=null;
+  }
+  updateNtBtnStates();
+}
+
+document.getElementById('nt-fontsize').addEventListener('change',function(){
+  applyNotesFontSize(this.value);
+  getNotesEditor().focus();
+});
+
+// Intercept keydown in the editor so new characters land in a sized span
+getNotesEditor().addEventListener('keydown',function(e){
+  // Ignore modifier keys, arrows, backspace etc.
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  if(e.key.length!==1) return; // only printable characters
+
+  if(pendingSizeChange){
+    e.preventDefault();
+    pendingSizeChange=false;
+    // Create a new span at the caret and type the character into it
+    const span=wrapSelectionInSizeSpan(currentNotesFontSize);
+    if(span){
+      activeTypingSpan=span;
+      // Replace the zwsp placeholder with the actual character
+      span.firstChild.nodeValue=e.key;
+      // Move caret to end
+      const sel=window.getSelection();
+      const r=document.createRange();
+      r.setStart(span.firstChild,e.key.length);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+    return;
+  }
+
+  // If we have an active typing span and the caret is still inside it, let the
+  // browser handle typing normally (it stays in the span). If caret moved out, clear.
+  if(activeTypingSpan){
+    const sel=window.getSelection();
+    if(sel&&sel.rangeCount){
+      const node=sel.getRangeAt(0).startContainer;
+      if(!activeTypingSpan.contains(node)) activeTypingSpan=null;
+    }
+  }
+});
+
+// Clear active span when user clicks or uses arrow keys
+getNotesEditor().addEventListener('mousedown',()=>{ activeTypingSpan=null; pendingSizeChange=false; });
+getNotesEditor().addEventListener('keydown',function(e){
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key)){
+    activeTypingSpan=null; pendingSizeChange=false;
+  }
+},true);
+
+// List insertion — create list then ensure li elements inherit current size
+function docList(cmd){
+  const ed=getNotesEditor(); ed.focus();
+  document.execCommand(cmd,false,null);
+  // Stamp font-size on any li that doesn't already have one so they
+  // respect the current chosen size (CSS var covers future typing)
+  ed.querySelectorAll('li').forEach(li=>{
+    if(!li.style.fontSize) li.style.fontSize=currentNotesFontSize;
+  });
+  updateNtBtnStates();
+}
+
+// Update toolbar button active states on selection change
+function updateNtBtnStates(){
+  document.getElementById('nt-bold').classList.toggle('active',document.queryCommandState('bold'));
+  document.getElementById('nt-italic').classList.toggle('active',document.queryCommandState('italic'));
+  document.getElementById('nt-underline').classList.toggle('active',document.queryCommandState('underline'));
+  document.getElementById('nt-ul').classList.toggle('active',document.queryCommandState('insertUnorderedList'));
+  document.getElementById('nt-ol').classList.toggle('active',document.queryCommandState('insertOrderedList'));
+}
+const notesEd=getNotesEditor();
+notesEd.addEventListener('keyup',updateNtBtnStates);
+notesEd.addEventListener('mouseup',updateNtBtnStates);
+notesEd.addEventListener('focus',updateNtBtnStates);
+// Prevent toolbar buttons from stealing focus from editor
+document.getElementById('notes-toolbar').addEventListener('mousedown',e=>{
+  if(e.target.tagName!=='SELECT') e.preventDefault();
+});
+
+/* ═══════════════════════════════════════════
    BOOT
 ═══════════════════════════════════════════ */
 resize();
 loadMap(currentMap);
 loadFromURL();
-syncNotesBar();
+// Initialise notes editor font size CSS var
+getNotesEditor().style.setProperty('--notes-fs','14px');
 </script>
 </body>
 </html>
