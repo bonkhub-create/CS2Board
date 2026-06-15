@@ -1099,16 +1099,23 @@ function render(){
   }
   for(const el of elements) drawEl(el,el===selectedEl);
   if(isDrawing&&drawPath.length>1){
+    const previewPts=drawPath.map(p=>toScreen(p.x,p.y));
+    const previewTip=previewPts[previewPts.length-1];
     ctx.strokeStyle=currentColor; ctx.lineWidth=2.5;
     ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash([5,4]);
-    ctx.beginPath();
-    const p0=toScreen(drawPath[0].x,drawPath[0].y); ctx.moveTo(p0.x,p0.y);
-    for(let i=1;i<drawPath.length;i++){const p=toScreen(drawPath[i].x,drawPath[i].y);ctx.lineTo(p.x,p.y);}
-    ctx.stroke(); ctx.setLineDash([]);
-    if(currentTool==='arrow'&&drawPath.length>=2){
-      const pa=toScreen(drawPath[drawPath.length-2].x,drawPath[drawPath.length-2].y);
-      const pb=toScreen(drawPath[drawPath.length-1].x,drawPath[drawPath.length-1].y);
-      arrowHead(pa,pb,currentColor);
+    if(currentTool==='arrow'&&previewPts.length>=2){
+      const ang=_smoothAngle(previewPts);
+      const headSize=Math.max(16,2.5*7);
+      const stopDist=headSize*0.95;
+      ctx.beginPath(); ctx.moveTo(previewPts[0].x,previewPts[0].y);
+      for(let i=1;i<previewPts.length-1;i++) ctx.lineTo(previewPts[i].x,previewPts[i].y);
+      ctx.lineTo(previewTip.x-Math.cos(ang)*stopDist, previewTip.y-Math.sin(ang)*stopDist);
+      ctx.stroke(); ctx.setLineDash([]);
+      _arrowHead(ctx,previewTip,ang,currentColor,headSize);
+    } else {
+      ctx.beginPath(); ctx.moveTo(previewPts[0].x,previewPts[0].y);
+      for(let i=1;i<previewPts.length;i++) ctx.lineTo(previewPts[i].x,previewPts[i].y);
+      ctx.stroke(); ctx.setLineDash([]);
     }
   }
   if(isRotatingPlayer) cv.style.cursor='crosshair';
@@ -1118,14 +1125,45 @@ function render(){
   else cv.style.cursor='crosshair';
 }
 
-function arrowHead(from,to,color,size=13){
-  const a=Math.atan2(to.y-from.y,to.x-from.x);
-  ctx.fillStyle=color;
-  ctx.beginPath();
-  ctx.moveTo(to.x,to.y);
-  ctx.lineTo(to.x-size*Math.cos(a-0.4),to.y-size*Math.sin(a-0.4));
-  ctx.lineTo(to.x-size*Math.cos(a+0.4),to.y-size*Math.sin(a+0.4));
-  ctx.closePath(); ctx.fill();
+// Draw a clean arrowhead on canvas context c.
+// 'tip' is the screen-space point the arrow points TO.
+// 'angle' is the direction angle in radians.
+// The stroke line should already be shortened so it stops before the tip.
+function _arrowHead(c,tip,angle,color,size){
+  // Simple solid triangle — no concave notch, just three clean points.
+  // tip:    the pointy end
+  // base L/R: spread at 0.42 rad (~24°) either side, set back by full size
+  // The stroke is already shortened so it meets the base of the head, not the tip.
+  const sin=Math.sin, cos=Math.cos;
+  const bx=tip.x-size*cos(angle);   // base centre point
+  const by=tip.y-size*sin(angle);
+  const spread=size*0.52;            // half-width at the base
+  const perp=angle+Math.PI/2;
+  c.save();
+  c.fillStyle=color;
+  c.beginPath();
+  c.moveTo(tip.x, tip.y);
+  c.lineTo(bx+spread*cos(perp), by+spread*sin(perp));
+  c.lineTo(bx-spread*cos(perp), by-spread*sin(perp));
+  c.closePath();
+  c.fill();
+  c.restore();
+}
+
+// Compute a smoothed end angle from the last N screen-space points.
+// Looks much cleaner than using just the final two raw freehand points.
+function _smoothAngle(screenPts){
+  const n=screenPts.length;
+  if(n<2) return 0;
+  // Weighted average direction over the last min(8,n-1) segments
+  const look=Math.min(8,n-1);
+  let dx=0,dy=0;
+  for(let i=n-look-1;i<n-1;i++){
+    const w=i-(n-look-2); // later segments weighted more
+    dx+=(screenPts[i+1].x-screenPts[i].x)*w;
+    dy+=(screenPts[i+1].y-screenPts[i].y)*w;
+  }
+  return Math.atan2(dy,dx);
 }
 
 function drawEl(el,sel){
@@ -1222,22 +1260,38 @@ function drawEl(el,sel){
     return;
   } else if(el.type==='path'){
     if(el.points.length<2){ctx.restore();return;}
-    ctx.strokeStyle=el.color||currentColor;
-    ctx.lineWidth=sel?3:2.2; ctx.lineCap='round'; ctx.lineJoin='round';
-    ctx.beginPath();
-    const p0=toScreen(el.points[0].x,el.points[0].y); ctx.moveTo(p0.x,p0.y);
-    for(let i=1;i<el.points.length;i++){const p=toScreen(el.points[i].x,el.points[i].y);ctx.lineTo(p.x,p.y);}
-    ctx.stroke();
-    if(el.arrow&&el.points.length>=2){
-      const pa=toScreen(el.points[el.points.length-2].x,el.points[el.points.length-2].y);
-      const pb=toScreen(el.points[el.points.length-1].x,el.points[el.points.length-1].y);
-      arrowHead(pa,pb,el.color||currentColor);
+    const lw=sel?3:2.2;
+    const color=el.color||currentColor;
+    // Convert all points to screen space once
+    const spts=el.points.map(p=>toScreen(p.x,p.y));
+    const tip=spts[spts.length-1];
+
+    if(el.arrow){
+      // Compute smooth end angle before drawing anything
+      const ang=_smoothAngle(spts);
+      const headSize=Math.max(16,lw*7); // larger, cleaner head
+      // Stroke stops exactly at the base of the head
+      const stopDist=headSize*0.95;
+      const stopX=tip.x-Math.cos(ang)*stopDist;
+      const stopY=tip.y-Math.sin(ang)*stopDist;
+
+      ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.beginPath(); ctx.moveTo(spts[0].x,spts[0].y);
+      for(let i=1;i<spts.length-1;i++) ctx.lineTo(spts[i].x,spts[i].y);
+      ctx.lineTo(stopX,stopY);
+      ctx.stroke();
+      _arrowHead(ctx,tip,ang,color,headSize);
+    } else {
+      ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.beginPath(); ctx.moveTo(spts[0].x,spts[0].y);
+      for(let i=1;i<spts.length;i++) ctx.lineTo(spts[i].x,spts[i].y);
+      ctx.stroke();
     }
     if(sel){
-      ctx.strokeStyle='rgba(232,200,64,0.2)'; ctx.lineWidth=8;
-      ctx.beginPath();
-      const q0=toScreen(el.points[0].x,el.points[0].y); ctx.moveTo(q0.x,q0.y);
-      for(let i=1;i<el.points.length;i++){const q=toScreen(el.points[i].x,el.points[i].y);ctx.lineTo(q.x,q.y);}
+      ctx.strokeStyle='rgba(15,127,255,0.15)'; ctx.lineWidth=8;
+      ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.beginPath(); ctx.moveTo(spts[0].x,spts[0].y);
+      for(let i=1;i<spts.length;i++) ctx.lineTo(spts[i].x,spts[i].y);
       ctx.stroke();
     }
   } else if(el.type==='text'){
@@ -2590,20 +2644,25 @@ function drawElToCtx(c,el,sel,z){
     drawTimerMarker(c,el,false,z,true);
   } else if(el.type==='path'){
     if(el.points.length<2) return;
-    c.strokeStyle=el.color||'#60aaff'; c.lineWidth=2.2; c.lineCap='round'; c.lineJoin='round';
-    c.beginPath();
-    const p0=toS(el.points[0].x,el.points[0].y); c.moveTo(p0.x,p0.y);
-    for(let i=1;i<el.points.length;i++){const p=toS(el.points[i].x,el.points[i].y);c.lineTo(p.x,p.y);}
-    c.stroke();
-    if(el.arrow&&el.points.length>=2){
-      const pa=toS(el.points[el.points.length-2].x,el.points[el.points.length-2].y);
-      const pb=toS(el.points[el.points.length-1].x,el.points[el.points.length-1].y);
-      const a=Math.atan2(pb.y-pa.y,pb.x-pa.x),size=13;
-      c.fillStyle=el.color||'#60aaff'; c.beginPath();
-      c.moveTo(pb.x,pb.y);
-      c.lineTo(pb.x-size*Math.cos(a-0.4),pb.y-size*Math.sin(a-0.4));
-      c.lineTo(pb.x-size*Math.cos(a+0.4),pb.y-size*Math.sin(a+0.4));
-      c.closePath(); c.fill();
+    const lw=2.2;
+    const color=el.color||'#60aaff';
+    const epts=el.points.map(p=>toS(p.x,p.y));
+    const etip=epts[epts.length-1];
+    if(el.arrow){
+      const ang=_smoothAngle(epts);
+      const headSize=Math.max(16,lw*7);
+      const stopDist=headSize*0.95;
+      c.strokeStyle=color; c.lineWidth=lw; c.lineCap='round'; c.lineJoin='round';
+      c.beginPath(); c.moveTo(epts[0].x,epts[0].y);
+      for(let i=1;i<epts.length-1;i++) c.lineTo(epts[i].x,epts[i].y);
+      c.lineTo(etip.x-Math.cos(ang)*stopDist, etip.y-Math.sin(ang)*stopDist);
+      c.stroke();
+      _arrowHead(c,etip,ang,color,headSize);
+    } else {
+      c.strokeStyle=color; c.lineWidth=lw; c.lineCap='round'; c.lineJoin='round';
+      c.beginPath(); c.moveTo(epts[0].x,epts[0].y);
+      for(let i=1;i<epts.length;i++) c.lineTo(epts[i].x,epts[i].y);
+      c.stroke();
     }
   } else if(el.type==='text'){
     const s=toS(el.x,el.y);
