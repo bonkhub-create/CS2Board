@@ -158,27 +158,20 @@ body{background:var(--bg0);color:var(--text1)}
 #notes-editor{
   flex:1;overflow-y:auto;
   padding:10px 14px;outline:none;
-  /* font-size driven by JS via --notes-fs custom property */
-  font-size:var(--notes-fs,14px);
+  font-size:14px;
   line-height:1.65;color:var(--text1);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   caret-color:var(--accent);
   min-height:80px;
 }
-/* All children inherit the editor font size so lists match */
+/* Children: kill background highlight, inherit color */
 #notes-editor *{
   background-color:transparent !important;
   color:inherit;
 }
-/* Lists and items explicitly inherit so browser doesn't reset them */
-#notes-editor ul,#notes-editor ol{
-  padding-left:22px;
-  font-size:inherit;
-}
-#notes-editor li{
-  margin:2px 0;
-  font-size:inherit;
-}
+/* Lists: don't touch font-size — let each li carry its own span */
+#notes-editor ul,#notes-editor ol{ padding-left:22px; }
+#notes-editor li{ margin:2px 0; }
 /* Keep selected text readable */
 #notes-editor ::selection{background:rgba(232,200,64,.25);color:var(--text1);}
 #notes-editor::-moz-selection{background:rgba(232,200,64,.25);color:var(--text1);}
@@ -2569,9 +2562,6 @@ function wrapSelectionInSizeSpan(px){
 
 function applyNotesFontSize(px){
   currentNotesFontSize=px;
-  // Always update the CSS var so the editor base + inherited list items reflect it
-  getNotesEditor().style.setProperty('--notes-fs',px);
-
   const sel=window.getSelection();
   const hasSelection=sel&&sel.rangeCount&&!sel.getRangeAt(0).collapsed;
 
@@ -2642,11 +2632,28 @@ getNotesEditor().addEventListener('keydown',function(e){
 function docList(cmd){
   const ed=getNotesEditor(); ed.focus();
   document.execCommand(cmd,false,null);
-  // Stamp font-size on any li that doesn't already have one so they
-  // respect the current chosen size (CSS var covers future typing)
+  // Wrap the text content of each new <li> in a sized span so only
+  // that li's text is sized — does NOT touch the li element itself,
+  // avoiding cascading to subsequent list items
   ed.querySelectorAll('li').forEach(li=>{
-    if(!li.style.fontSize) li.style.fontSize=currentNotesFontSize;
+    // Skip any li that already has a sized span inside
+    if(li.querySelector('span[style*="font-size"]')) return;
+    const span=document.createElement('span');
+    span.style.fontSize=currentNotesFontSize;
+    // Move all child nodes into the span
+    while(li.firstChild) span.appendChild(li.firstChild);
+    li.appendChild(span);
   });
+  // Place caret at end of last li's span
+  const lis=ed.querySelectorAll('li');
+  if(lis.length){
+    const last=lis[lis.length-1];
+    const sp=last.querySelector('span')||last;
+    const r=document.createRange();
+    r.selectNodeContents(sp); r.collapse(false);
+    const sel=window.getSelection();
+    sel.removeAllRanges(); sel.addRange(r);
+  }
   updateNtBtnStates();
 }
 
@@ -2673,8 +2680,7 @@ document.getElementById('notes-toolbar').addEventListener('mousedown',e=>{
 resize();
 loadMap(currentMap);
 loadFromURL();
-// Initialise notes editor font size CSS var
-getNotesEditor().style.setProperty('--notes-fs','14px');
+
 </script>
 </body>
 </html>
