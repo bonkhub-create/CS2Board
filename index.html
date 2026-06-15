@@ -1721,8 +1721,25 @@ function onDown(e){
     }
   }
 
+  // Always: if clicking an existing player, select it (to expose the rotate handle)
+  // regardless of which tool is active. Clicks on empty space deselect.
+  const hitEl = hitTest(spos);
+  if(hitEl && hitEl.type === 'player'){
+    selectedEl = hitEl;
+    isDragging = true;
+    dragOffset = {x: wpos.x - hitEl.x, y: wpos.y - hitEl.y};
+    updateSidebar(selectedEl); updateMobSelSheet(); render();
+    return;
+  }
+
+  // Clicking empty space deselects
+  if(!hitEl){
+    selectedEl = null;
+    updateSidebar(null);
+  }
+
   if(currentTool==='select'){
-    selectedEl=hitTest(spos);
+    selectedEl=hitEl;
     if(selectedEl){
       isDragging=true;
       if(selectedEl.type==='path') dragOffset={x:wpos.x-selectedEl.points[0].x,y:wpos.y-selectedEl.points[0].y};
