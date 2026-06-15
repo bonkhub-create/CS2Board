@@ -1156,6 +1156,17 @@ function drawEl(el,sel){
                chy+Math.sin(perp)*cs+Math.sin(angle+Math.PI)*cs*0.55);
     ctx.stroke();
 
+    // Floating name label below the circle
+    if(el.name&&el.name.trim()){
+      const fs=Math.max(7,Math.round(9*Math.min(vz,2)));
+      ctx.font=`600 ${fs}px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      // Subtle shadow so name reads against any map background
+      ctx.shadowColor='rgba(0,0,0,0.85)'; ctx.shadowBlur=Math.max(2,3*Math.min(vz,2));
+      ctx.fillStyle=el.enemy?'#aaaaaa':(PLAYER_COLORS[el.color]||PLAYER_COLORS.blue).text;
+      ctx.fillText(el.name.trim(), s.x, s.y+r+Math.max(2,3*Math.min(vz,2)));
+      ctx.shadowBlur=0;
+    }
     // Rotate handle (only when selected)
     if(sel){
       const handleDist=r*3.2;
@@ -1628,6 +1639,12 @@ function updateSidebar(el){
       });
       h+='</div>';
     }
+    h+=`<div style="margin-top:8px;font-size:10px;color:var(--text3);margin-bottom:5px">Name (optional)</div>`;
+    h+=`<input id="player-name-input" type="text" value="${el.name||''}" placeholder="e.g. IGL, Lurker..."
+         maxlength="20" autocomplete="off" spellcheck="false"
+         style="width:100%;background:var(--bg2);color:var(--text1);border:1px solid var(--border);
+         border-radius:999px;padding:5px 12px;font-size:12px;font-weight:500;outline:none;
+         font-family:inherit;letter-spacing:.02em;transition:border-color .12s;">`;
   } else if(el.type==='waypoint'){
     h=`<div class="si-row">Type: <span>Waypoint</span></div><div class="si-row">Number: <span>${el.num}</span></div>`;
     h+=`<div style="margin-top:6px;font-size:10px;color:var(--text3);margin-bottom:5px">Waypoint color</div><div style="display:flex;gap:6px;flex-wrap:wrap">`;
@@ -1672,6 +1689,14 @@ function updateSidebar(el){
       selectedEl.time=timerInput.value; render();
     });
     timerInput.addEventListener('focus',()=>timerInput.select());
+  }
+  const playerNameInput=document.getElementById('player-name-input');
+  if(playerNameInput){
+    playerNameInput.addEventListener('input',()=>{
+      if(!selectedEl||selectedEl.type!=='player') return;
+      selectedEl.name=playerNameInput.value; render();
+    });
+    playerNameInput.addEventListener('focus',()=>playerNameInput.select());
   }
   const fsSlider=document.getElementById('fs-slider');
   if(fsSlider){
@@ -1739,6 +1764,16 @@ function updateMobSelSheet(){
     });
     h+='</div>';
   }
+  if(selectedEl.type==='player'){
+    h+=`<div class="mob-color-section-label" style="margin-top:10px">Name (optional)</div>`;
+    h+=`<input id="mob-player-name" type="text" value="${selectedEl.name||''}"
+         placeholder="e.g. IGL, Lurker..." maxlength="20"
+         autocomplete="off" autocorrect="off" spellcheck="false"
+         style="width:100%;background:var(--bg2);color:var(--text1);
+         border:1px solid var(--border);border-radius:999px;
+         padding:10px 16px;font-size:15px;font-weight:500;outline:none;
+         font-family:inherit;-webkit-appearance:none;text-align:center;">`;
+  }
   if(selectedEl.type==='waypoint'){
     h+=`<div class="mob-color-section-label" style="margin-top:8px">Waypoint color</div><div class="mob-color-swatches">`;
     WAYPOINT_COLOR_KEYS.forEach(k=>{
@@ -1785,6 +1820,14 @@ function updateMobSelSheet(){
       selectedEl.time=mobTimerInput.value; render();
     });
     mobTimerInput.addEventListener('focus',()=>mobTimerInput.select());
+  }
+  const mobPlayerName=document.getElementById('mob-player-name');
+  if(mobPlayerName){
+    mobPlayerName.addEventListener('input',()=>{
+      if(!selectedEl||selectedEl.type!=='player') return;
+      selectedEl.name=mobPlayerName.value; render();
+    });
+    mobPlayerName.addEventListener('focus',()=>mobPlayerName.select());
   }
   info.querySelectorAll('.mob-swatch[data-pcolor]').forEach(sw=>{
     sw.addEventListener('click',()=>{
@@ -2483,6 +2526,16 @@ function drawElToCtx(c,el,sel,z){
     c.lineTo(chx+Math.cos(angle)*cs*0.7,chy+Math.sin(angle)*cs*0.7);
     c.lineTo(chx+Math.cos(perp)*cs+Math.cos(angle+Math.PI)*cs*0.55,chy+Math.sin(perp)*cs+Math.sin(angle+Math.PI)*cs*0.55);
     c.stroke();
+    // Floating name label
+    if(el.name&&el.name.trim()){
+      const fs=Math.max(7,Math.round(9*Math.min(z,2)));
+      c.font=`600 ${fs}px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif`;
+      c.textAlign='center'; c.textBaseline='top';
+      c.shadowColor='rgba(0,0,0,0.85)'; c.shadowBlur=Math.max(2,3*Math.min(z,2));
+      c.fillStyle=el.enemy?'#aaaaaa':(PLAYER_COLORS[el.color]||PLAYER_COLORS.blue).text;
+      c.fillText(el.name.trim(), s.x, s.y+r+Math.max(2,3*Math.min(z,2)));
+      c.shadowBlur=0;
+    }
   } else if(el.type==='waypoint'){
     const s=toS(el.x,el.y),r=Math.max(7,13*Math.min(z,2));
     const wc=WAYPOINT_COLORS[el.wcolor]||WAYPOINT_COLORS.yellow;
