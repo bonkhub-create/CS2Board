@@ -2521,134 +2521,64 @@ function doc(cmd,val){
   updateNtBtnStates();
 }
 
-// ── Font size state ────────────────────────────────────────────────────────
+// ── Font size ───────────────────────────────────────────────────────────────
 let currentNotesFontSize='14px';
-// When true, the next keystroke should open a new sized span
-let pendingSizeChange=false;
-// The span currently being typed into (so consecutive keystrokes stay in it)
-let activeTypingSpan=null;
-
-// Wrap current selection in a <span style="font-size:px"> and return it.
-// If selection is collapsed, insert an empty span and place caret inside.
-function wrapSelectionInSizeSpan(px){
-  const sel=window.getSelection();
-  if(!sel||!sel.rangeCount) return null;
-  const range=sel.getRangeAt(0);
-  const span=document.createElement('span');
-  span.style.fontSize=px;
-
-  if(range.collapsed){
-    // Insert zero-width non-breaking space so the span has content and caret lands inside
-    span.appendChild(document.createTextNode('​'));
-    range.insertNode(span);
-    // Place caret after the zwsp, inside the span
-    const r=document.createRange();
-    r.setStart(span.firstChild,1);
-    r.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(r);
-    return span;
-  } else {
-    range.surroundContents(span);
-    // Move caret to end of wrapped content
-    const r=document.createRange();
-    r.selectNodeContents(span);
-    r.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(r);
-    return span;
-  }
-}
 
 function applyNotesFontSize(px){
   currentNotesFontSize=px;
+  const ed=getNotesEditor();
+  ed.focus();
   const sel=window.getSelection();
-  const hasSelection=sel&&sel.rangeCount&&!sel.getRangeAt(0).collapsed;
+  if(!sel||!sel.rangeCount) return;
+  const range=sel.getRangeAt(0);
 
-  if(hasSelection){
-    // Wrap the selected text immediately
-    try{ wrapSelectionInSizeSpan(px); } catch(e){}
-    activeTypingSpan=null;
-    pendingSizeChange=false;
+  if(!range.collapsed){
+    // Selected text: styleWithCSS makes browser emit a span with font-size
+    document.execCommand('styleWithCSS',false,true);
+    document.execCommand('fontSize',false,px);
+    document.execCommand('styleWithCSS',false,false);
+    // Clean up any legacy <font size> tags some browsers still emit
+    ed.querySelectorAll('font[size]').forEach(f=>{
+      f.style.fontSize=px; f.removeAttribute('size');
+    });
   } else {
-    // No selection — mark that the next keystroke should start a new sized span
-    pendingSizeChange=true;
-    activeTypingSpan=null;
+    // Collapsed caret: insert a sized span with a zwsp so caret lands inside it.
+    // insertHTML is the one execCommand that reliably works in all contexts
+    // including inside <li> elements.
+    const html=`<span id="__ntfs" style="font-size:${px}">​</span>`;
+    document.execCommand('insertHTML',false,html);
+    const injected=ed.querySelector('#__ntfs');
+    if(injected){
+      injected.removeAttribute('id');
+      // Place caret after the zwsp so typing appends normally
+      const r=document.createRange();
+      r.setStart(injected.firstChild,1);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
   }
   updateNtBtnStates();
 }
 
 document.getElementById('nt-fontsize').addEventListener('change',function(){
   applyNotesFontSize(this.value);
-  getNotesEditor().focus();
 });
 
-// Intercept keydown in the editor so new characters land in a sized span
-getNotesEditor().addEventListener('keydown',function(e){
-  // Ignore modifier keys, arrows, backspace etc.
-  if(e.ctrlKey||e.metaKey||e.altKey) return;
-  if(e.key.length!==1) return; // only printable characters
-
-  if(pendingSizeChange){
-    e.preventDefault();
-    pendingSizeChange=false;
-    // Create a new span at the caret and type the character into it
-    const span=wrapSelectionInSizeSpan(currentNotesFontSize);
-    if(span){
-      activeTypingSpan=span;
-      // Replace the zwsp placeholder with the actual character
-      span.firstChild.nodeValue=e.key;
-      // Move caret to end
-      const sel=window.getSelection();
-      const r=document.createRange();
-      r.setStart(span.firstChild,e.key.length);
-      r.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(r);
-    }
-    return;
-  }
-
-  // If we have an active typing span and the caret is still inside it, let the
-  // browser handle typing normally (it stays in the span). If caret moved out, clear.
-  if(activeTypingSpan){
-    const sel=window.getSelection();
-    if(sel&&sel.rangeCount){
-      const node=sel.getRangeAt(0).startContainer;
-      if(!activeTypingSpan.contains(node)) activeTypingSpan=null;
-    }
-  }
-});
-
-// Clear active span when user clicks or uses arrow keys
-getNotesEditor().addEventListener('mousedown',()=>{ activeTypingSpan=null; pendingSizeChange=false; });
-getNotesEditor().addEventListener('keydown',function(e){
-  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key)){
-    activeTypingSpan=null; pendingSizeChange=false;
-  }
-},true);
-
-// List insertion — create list then ensure li elements inherit current size
+// List insertion
 function docList(cmd){
   const ed=getNotesEditor(); ed.focus();
   document.execCommand(cmd,false,null);
-  // Wrap the text content of each new <li> in a sized span so only
-  // that li's text is sized — does NOT touch the li element itself,
-  // avoiding cascading to subsequent list items
+  // Wrap each new li's content in a sized span
   ed.querySelectorAll('li').forEach(li=>{
-    // Skip any li that already has a sized span inside
     if(li.querySelector('span[style*="font-size"]')) return;
-    const span=document.createElement('span');
-    span.style.fontSize=currentNotesFontSize;
-    // Move all child nodes into the span
-    while(li.firstChild) span.appendChild(li.firstChild);
-    li.appendChild(span);
+    const html=li.innerHTML||'​';
+    li.innerHTML=`<span style="font-size:${currentNotesFontSize}">${html}</span>`;
   });
-  // Place caret at end of last li's span
+  // Place caret inside the last li
   const lis=ed.querySelectorAll('li');
   if(lis.length){
-    const last=lis[lis.length-1];
-    const sp=last.querySelector('span')||last;
+    const sp=lis[lis.length-1].querySelector('span')||lis[lis.length-1];
     const r=document.createRange();
     r.selectNodeContents(sp); r.collapse(false);
     const sel=window.getSelection();
@@ -2656,6 +2586,7 @@ function docList(cmd){
   }
   updateNtBtnStates();
 }
+
 
 // Update toolbar button active states on selection change
 function updateNtBtnStates(){
