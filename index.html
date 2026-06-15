@@ -992,7 +992,8 @@ function render(){
       arrowHead(pa,pb,currentColor);
     }
   }
-  if(isPanning) cv.style.cursor='grabbing';
+  if(isRotatingPlayer) cv.style.cursor='crosshair';
+  else if(isPanning) cv.style.cursor='grabbing';
   else if(spaceDown) cv.style.cursor='grab';
   else if(currentTool==='select') cv.style.cursor='default';
   else cv.style.cursor='crosshair';
@@ -1014,9 +1015,57 @@ function drawEl(el,sel){
   if(el.type==='player'){
     const s=toScreen(el.x,el.y),r=Math.max(4,8*Math.min(vz,2));
     const pc=el.enemy?ENEMY_COLOR:(PLAYER_COLORS[el.color]||PLAYER_COLORS.blue);
+    const angle=el.angle||0;
+
+    // Circle body
     ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2);
     ctx.fillStyle=pc.fill; ctx.fill();
     ctx.strokeStyle=pc.stroke; ctx.lineWidth=sel?2:1.5; ctx.stroke();
+
+    // Chevron on the edge pointing in facing direction
+    const chevR=r+Math.max(2,r*0.4);
+    const chx=s.x+Math.cos(angle)*chevR;
+    const chy=s.y+Math.sin(angle)*chevR;
+    const cs=Math.max(2.5,r*0.55);
+    const perp=angle+Math.PI/2;
+    ctx.strokeStyle=pc.stroke; ctx.lineWidth=Math.max(1.2,r*0.22); ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(chx-Math.cos(perp)*cs+Math.cos(angle+Math.PI)*cs*0.55,
+               chy-Math.sin(perp)*cs+Math.sin(angle+Math.PI)*cs*0.55);
+    ctx.lineTo(chx+Math.cos(angle)*cs*0.7, chy+Math.sin(angle)*cs*0.7);
+    ctx.lineTo(chx+Math.cos(perp)*cs+Math.cos(angle+Math.PI)*cs*0.55,
+               chy+Math.sin(perp)*cs+Math.sin(angle+Math.PI)*cs*0.55);
+    ctx.stroke();
+
+    // Rotate handle (only when selected)
+    if(sel){
+      const handleDist=r*3.2;
+      const hx=s.x+Math.cos(angle)*handleDist;
+      const hy=s.y+Math.sin(angle)*handleDist;
+      // Dashed line from circle to handle
+      ctx.strokeStyle='rgba(232,200,64,0.5)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(s.x,s.y); ctx.lineTo(hx,hy); ctx.stroke();
+      ctx.setLineDash([]);
+      // Handle circle
+      const hr=Math.max(6,r*0.85);
+      ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2);
+      ctx.fillStyle='#e8c840'; ctx.fill();
+      ctx.strokeStyle='#0d0f14'; ctx.lineWidth=1.5; ctx.stroke();
+      // Curved arrow inside handle to hint at rotation
+      const as=hr*0.42;
+      ctx.strokeStyle='#0d0f14'; ctx.lineWidth=Math.max(1,hr*0.28); ctx.lineCap='round';
+      ctx.beginPath(); ctx.arc(hx,hy,as,angle+0.5,angle+2.2); ctx.stroke();
+      // Arrow tip on the arc
+      const tipA=angle+2.2;
+      const tx=hx+Math.cos(tipA)*as, ty=hy+Math.sin(tipA)*as;
+      const ta=tipA+Math.PI/2;
+      const ts=Math.max(1.5,hr*0.28);
+      ctx.beginPath();
+      ctx.moveTo(tx,ty);
+      ctx.lineTo(tx-Math.cos(ta-0.5)*ts,ty-Math.sin(ta-0.5)*ts);
+      ctx.lineTo(tx-Math.cos(ta+0.5)*ts,ty-Math.sin(ta+0.5)*ts);
+      ctx.closePath(); ctx.fillStyle='#0d0f14'; ctx.fill();
+    }
   } else if(el.type==='waypoint'){
     const s=toScreen(el.x,el.y),r=Math.max(7,13*Math.min(vz,2));
     ctx.beginPath(); ctx.arc(s.x,s.y,r,0,Math.PI*2);
@@ -1460,6 +1509,17 @@ let isPinching=false; // blocks element placement if a second finger arrives mid
 let longPressTimer=null;
 let touchStartPos=null;
 let isResizingText=false,resizeEl=null;
+let isRotatingPlayer=false,rotateEl=null;
+
+// Returns the screen-space position of a player's rotate handle, or null
+function playerHandlePos(el){
+  if(el.type!=='player') return null;
+  const s=toScreen(el.x,el.y);
+  const r=Math.max(4,8*Math.min(vz,2));
+  const angle=el.angle||0;
+  const handleDist=r*3.2;
+  return{x:s.x+Math.cos(angle)*handleDist, y:s.y+Math.sin(angle)*handleDist, r:Math.max(6,r*0.85)};
+}
 
 const PLACE_TOOLS=new Set(['teammate','enemy','smokezone','molotovzone','flash','nade','bomb','sniper','waypoint','text']);
 const DRAW_TOOLS=new Set(['draw','arrow',...PLACE_TOOLS]);
@@ -1499,6 +1559,17 @@ cv.addEventListener('touchstart',e=>{
     const t=e.touches[0];
     const spos={x:t.clientX-r.left,y:t.clientY-r.top};
     touchStartPos=spos;
+
+    // Check rotate handle first — bigger hit radius for finger accuracy
+    if(selectedEl&&selectedEl.type==='player'){
+      const h=playerHandlePos(selectedEl);
+      const mobHandleR=Math.max(18, h?h.r*1.8:18);
+      if(h&&Math.hypot(spos.x-h.x,spos.y-h.y)<mobHandleR){
+        isRotatingPlayer=true; rotateEl=selectedEl;
+        clearTimeout(longPressTimer); return;
+      }
+    }
+
     if(DRAW_TOOLS.has(currentTool)){
       touchDrawing=true;
       onDown({button:0,clientX:t.clientX,clientY:t.clientY,touches:e.touches});
@@ -1550,7 +1621,11 @@ cv.addEventListener('touchmove',e=>{
     if(touchStartPos&&Math.hypot(spos.x-touchStartPos.x,spos.y-touchStartPos.y)>8){
       clearTimeout(longPressTimer);
     }
-    if(touchDrawing){
+    if(isRotatingPlayer&&rotateEl){
+      const s=toScreen(rotateEl.x,rotateEl.y);
+      rotateEl.angle=Math.atan2(spos.y-s.y,spos.x-s.x);
+      clearTimeout(longPressTimer); render();
+    } else if(touchDrawing){
       onMove({clientX:t.clientX,clientY:t.clientY,touches:e.touches});
     } else if(touchPanStart){
       vx=touchPanOrigin.x+(spos.x-touchPanStart.x);
@@ -1571,6 +1646,7 @@ cv.addEventListener('touchend',e=>{
     if(e.touches.length===0) isPinching=false;
   }
 
+  if(isRotatingPlayer){ isRotatingPlayer=false; rotateEl=null; render(); }
   if(touchDrawing&&!isPinching){ onUp({}); touchDrawing=false; }
   if(e.touches.length===0){ touchPanStart=null; touchStartPos=null; }
 },{passive:false});
@@ -1620,6 +1696,14 @@ function onDown(e){
   const spos=getPos(e);
   const wpos=toWorld(spos.x,spos.y);
   if(isPanMode()){isPanning=true;panStart=spos;panOrigin={x:vx,y:vy};render();return;}
+
+  // Rotate handle for selected player
+  if(selectedEl&&selectedEl.type==='player'){
+    const h=playerHandlePos(selectedEl);
+    if(h&&Math.hypot(spos.x-h.x,spos.y-h.y)<h.r+6){
+      isRotatingPlayer=true; rotateEl=selectedEl; render(); return;
+    }
+  }
 
   // Resize handle for selected text
   if(selectedEl&&selectedEl.type==='text'){
@@ -1676,6 +1760,12 @@ function onDown(e){
 function onMove(e){
   const spos=getPos(e);
   const wpos=toWorld(spos.x,spos.y);
+  if(isRotatingPlayer&&rotateEl){
+    // Angle = direction from player centre to mouse position
+    const s=toScreen(rotateEl.x,rotateEl.y);
+    rotateEl.angle=Math.atan2(spos.y-s.y,spos.x-s.x);
+    render(); return;
+  }
   if(isResizingText&&resizeEl){
     const s=toScreen(resizeEl.x,resizeEl.y);
     const PAD=12;
@@ -1701,6 +1791,7 @@ function onMove(e){
 }
 
 function onUp(e){
+  if(isRotatingPlayer){isRotatingPlayer=false;rotateEl=null;render();return;}
   if(isResizingText){isResizingText=false;resizeEl=null;render();return;}
   if(e&&e.button===1){middleDown=false;if(isDragging)isDragging=false;if(isPanning)isPanning=false;render();return;}
   if(isPanning){isPanning=false;render();return;}
